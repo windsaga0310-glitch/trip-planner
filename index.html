@@ -1,0 +1,3067 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>行程規劃系統</title>
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --blue:#2563eb;--blue-d:#1e3a8a;--blue-l:#dbeafe;--blue-ll:#eff6ff;
+  --green:#059669;--green-l:#dcfce7;--green-d:#065f46;
+  --red:#dc2626;--red-l:#fee2e2;--red-m:#fca5a5;
+  --amber:#d97706;--amber-l:#fef3c7;
+  --purple:#7c3aed;--purple-l:#ede9fe;
+  --g50:#f9fafb;--g100:#f3f4f6;--g200:#e5e7eb;--g300:#d1d5db;
+  --g400:#9ca3af;--g500:#6b7280;--g600:#4b5563;--g700:#374151;--g900:#111827;
+  --r:14px;--rs:8px;
+  --sh:0 1px 3px rgba(0,0,0,.1),0 1px 2px rgba(0,0,0,.06);
+  --sh-md:0 4px 12px rgba(0,0,0,.1),0 2px 4px rgba(0,0,0,.06);
+  --sh-lg:0 12px 40px rgba(0,0,0,.15),0 4px 8px rgba(0,0,0,.08);
+}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#eef2ff;color:var(--g900);min-height:100vh}
+
+/* ─── Header ─── */
+.ph{background:linear-gradient(135deg,var(--blue-d) 0%,var(--blue) 100%);color:white;padding:28px 40px 24px;position: relative;text-align: center}
+.ph h1{font-size:1.5rem;font-weight:800;letter-spacing:-.5px;margin-bottom:4px}
+.ph p{opacity:.75;font-size:.85rem}
+.trip-dates{background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.2);
+  border-radius:var(--r);padding:16px 20px;margin-top:18px;display:flex;gap:24px;flex-wrap:wrap;align-items:center;justify-content:center;text-align: center}
+.trip-dates-title{width:100%;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.9px;opacity:.7;margin-bottom:-8px}
+.date-grp{display:flex;flex-direction:column;gap:5px;align-items: center}
+.date-grp label{font-size:.72rem;font-weight:700;opacity:.8}
+.date-grp input[type=date]{padding:8px 12px;border:none;border-radius:var(--rs);background:rgba(255,255,255,.2);color:white;
+  font-size:.88rem;cursor:pointer;outline:none;min-width:160px}
+.date-grp input[type=date]:focus{background:rgba(255,255,255,.3)}
+.date-grp input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1);cursor:pointer;opacity:.8}
+.trip-duration{font-size:.78rem;opacity:.7;align-self:center;margin-left:4px}
+
+/* ─── 數字時鐘樣式 ─── */
+.clock-grp {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  align-items: center;
+  padding-left: 20px;
+  border-left: 1px solid rgba(255, 255, 255, 0.2);
+  min-width: 140px;
+}
+.clock-select {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  font-size: 0.65rem;
+  padding: 2px 4px;
+  outline: none;
+  width: 110px;
+  cursor: pointer;
+}
+.clock-select option { background: var(--blue-d); color: white; }
+.clock-display { color: white; text-align: center; line-height: 1.2; }
+.clock-time { font-family: monospace; font-size: 1.1rem; font-weight: 800; letter-spacing: 1px; }
+.clock-date { font-size: 0.65rem; opacity: 0.8; font-weight: 600; }
+
+/* --- 新增右上方品牌標籤樣式 --- */
+.studio-tag {
+  position: absolute;  
+   top: 12px;                /* 稍微往上提一點 */
+  right: 25px;
+  font-size: 1.3rem;        /* 建議從 1.2rem 稍微調大到 1.3rem 或 1.4rem */
+  font-family: 'Dancing Script', cursive;
+  letter-spacing: 0.5px;    /* 草寫體不需要太大的字距，縮小一點點會更美 */
+  opacity: 0.9;             /* 稍微調亮一點 */
+  font-weight: 700;
+  color: rgba(255,255,255,0.9);
+}
+
+/* ─── Main ─── */
+.main{max-width:760px;margin:0 auto;padding:32px 20px 60px}
+.sec-title{display:flex;align-items:center;gap:10px;margin-bottom:22px}
+.sec-num{width:28px;height:28px;border-radius:50%;background:var(--blue);color:white;
+  display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:800;flex-shrink:0}
+.sec-lbl{font-size:1rem;font-weight:700}
+.sec-sub{font-size:.78rem;color:var(--g500);margin-top:1px}
+
+/* ─── Leg card ─── */
+#builder{display:flex;flex-direction:column;gap:14px}
+.leg-card{background:white;border:2px solid var(--g200);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;transition:border-color .2s}
+.leg-card:focus-within{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.1),var(--sh)}
+
+.leg-head{background:linear-gradient(135deg,var(--g50),var(--g100));border-bottom:1px solid var(--g200);
+  padding:10px 14px;display:flex;align-items:center;justify-content:space-between}
+.leg-badge{background:var(--blue);color:white;border-radius:6px;padding:2px 9px;font-size:.7rem;font-weight:800;letter-spacing:.5px}
+.leg-preview{font-size:.78rem;color:var(--g500);font-weight:600;margin-left:8px}
+.leg-remove{width:24px;height:24px;border-radius:50%;border:none;background:var(--red-l);color:var(--red);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:700;transition:all .15s}
+.leg-remove:hover{background:var(--red-m);transform:scale(1.1)}
+
+.leg-body{padding:16px}
+
+/* ─── Endpoints row ─── */
+.endpoints-row{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:start;margin-bottom:14px}
+.ep-arrow{display:flex;align-items:center;justify-content:center;padding-top:28px;color:var(--g300);font-size:1.4rem}
+.endpoint{display:flex;flex-direction:column;gap:6px}
+.ep-label{font-size:.65rem;font-weight:800;color:var(--g500);text-transform:uppercase;letter-spacing:.8px;margin-bottom:1px}
+
+.sel{width:100%;border:1.5px solid var(--g200);border-radius:var(--rs);padding:7px 10px;
+  font-size:.83rem;color:var(--g900);background:white;outline:none;cursor:pointer;
+  transition:border-color .15s;appearance:auto}
+.sel:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(37,99,235,.1)}
+.sel:disabled{background:var(--g50);color:var(--g400);cursor:not-allowed}
+.sel.from-sel{border-color:#86efac}
+.sel.from-sel:focus{border-color:var(--green)}
+.sel.to-sel{border-color:#d8b4fe}
+.sel.to-sel:focus{border-color:var(--purple)}
+
+.airport-wrap{position:relative}
+.code-inp{width:100%;border:1.5px solid var(--g200);border-radius:var(--rs);padding:7px 10px;
+  font-size:.95rem;font-weight:800;color:var(--g900);outline:none;
+  transition:border-color .15s;letter-spacing:.5px;text-transform:uppercase}
+.code-inp:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(37,99,235,.1)}
+.code-inp.from-code{border-color:var(--green);background:#f0fdf4}
+.code-inp.to-code{border-color:var(--purple);background:#faf5ff}
+.code-inp::placeholder{font-size:.75rem;font-weight:400;letter-spacing:0;text-transform:none;color:var(--g300)}
+
+/* ─── Leg departure date section ─── */
+.leg-dep-date-section{
+  background:var(--blue-ll);border-radius:var(--rs);
+  padding:10px 14px;display:flex;align-items:center;gap:16px;
+  border:1.5px solid var(--blue-l);margin-bottom:12px;flex-wrap:wrap;
+}
+.leg-dep-date-section label{font-size:.7rem;font-weight:800;color:var(--blue-d);
+  text-transform:uppercase;letter-spacing:.7px;white-space:nowrap}
+.leg-dep-date-section input[type=date]{
+  border:1.5px solid var(--blue-l);border-radius:var(--rs);
+  padding:7px 10px;font-size:.9rem;color:var(--g900);
+  background:white;outline:none;transition:border-color .15s;
+}
+.leg-dep-date-section input[type=date]:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(37,99,235,.1)}
+.leg-dep-date-section input[type=date].invalid{border-color:var(--red)!important;background:#fff5f5}
+.leg-dep-date-section input[type=date]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:.6}
+.date-display-chip{
+  font-size:.88rem;font-weight:700;color:var(--blue-d);
+  background:white;border:1.5px solid var(--blue-l);border-radius:20px;
+  padding:4px 12px;white-space:nowrap;
+}
+.date-display-chip.empty{color:var(--g400);font-weight:400;background:transparent;border-color:transparent}
+.date-warn-inline{font-size:.68rem;color:var(--red);background:var(--red-l);border-radius:5px;padding:3px 7px;display:none}
+
+/* ─── Flight query row ─── */
+.flight-query-row{display:flex;gap:8px;align-items:flex-end;margin-bottom:12px;flex-wrap:wrap}
+
+/* ─── Flight / DateTime row ─── */
+.flight-dt-row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+.flight-dep-grp,.flight-arr-grp{display:flex;gap:8px;align-items:flex-end;flex-shrink:0}
+.fld{display:flex;flex-direction:column;gap:4px}
+.fld label{font-size:.63rem;font-weight:700;color:var(--g500);text-transform:uppercase;letter-spacing:.7px;display:flex;align-items:center;gap:5px}
+.fld input{border:1.5px solid var(--g200);border-radius:var(--rs);padding:7px 10px;font-size:.85rem;color:var(--g900);
+  background:white;outline:none;transition:border-color .15s;width:100%}
+.fld input:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(37,99,235,.1)}
+.fld input.auto-filled{border-color:var(--green);background:#f0fdf4}
+.fld input.invalid{border-color:var(--red)!important;background:#fff5f5}
+.fld input[type=date]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:.5}
+.fld.fld-flight{flex:0 0 116px}
+.fld.fld-date{flex:0 0 128px}
+.fld.fld-time{flex:0 0 72px}
+.fld.fld-time input{text-align:center;letter-spacing:1px;font-family:monospace;font-size:.9rem}
+.fdt-sep{align-self:flex-end;padding-bottom:10px;color:var(--g300);font-size:.9rem;font-weight:700;flex-shrink:0}
+
+.date-warn{font-size:.68rem;color:var(--red);margin-top:2px;display:none;background:var(--red-l);border-radius:5px;padding:3px 7px}
+
+.auto-badge{font-size:.6rem;background:var(--green-l);color:var(--green);border-radius:4px;padding:1px 5px;font-weight:700;display:none}
+
+/* Query flight button */
+.query-btn{flex-shrink:0;align-self:flex-end;padding:8px 14px;background:var(--blue);color:white;border:none;
+  border-radius:var(--rs);cursor:pointer;font-size:.78rem;font-weight:700;white-space:nowrap;height:36px;
+  transition:all .15s;display:flex;align-items:center;gap:5px}
+.query-btn:hover{background:var(--blue-d)}
+.query-btn:disabled{opacity:.55;cursor:default}
+.query-btn .spin{display:inline-block;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* datetime group (modal) */
+.mdt-group{display:flex;gap:6px;align-items:flex-end}
+.dt-sep{font-size:.7rem;color:var(--g400);padding-bottom:10px;font-weight:700}
+
+/* ─── Insert leg (between cards) ─── */
+.insert-leg-wrap{display:flex;justify-content:center;padding:6px 0 2px}
+.insert-leg-btn{background:transparent;color:var(--blue);border:1.5px dashed var(--blue-l);
+  border-radius:20px;padding:4px 20px;font-size:.75rem;font-weight:700;cursor:pointer;
+  transition:all .18s;display:inline-flex;align-items:center;gap:5px}
+.insert-leg-btn:hover{background:var(--blue-ll);border-color:var(--blue);transform:translateY(-1px)}
+/* ─── Add leg / Generate ─── */
+.add-leg-wrap{margin-top:8px;display:flex;justify-content:center}
+.add-leg-btn{background:white;color:var(--blue);border:2px dashed var(--blue-l);border-radius:30px;
+  padding:10px 30px;font-size:.85rem;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:8px}
+.add-leg-btn:hover{background:var(--blue-ll);border-color:var(--blue);transform:translateY(-1px)}
+.gen-wrap{margin-top:24px;display:flex;justify-content:center}
+.gen-btn{background:linear-gradient(135deg,var(--blue-d),var(--blue));color:white;border:none;border-radius:30px;
+  padding:15px 52px;font-size:1rem;font-weight:800;cursor:pointer;letter-spacing:.5px;
+  box-shadow:0 4px 18px rgba(37,99,235,.4);transition:all .2s;display:flex;align-items:center;gap:10px}
+.gen-btn:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(37,99,235,.5)}
+
+/* ─── Toast ─── */
+#toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);
+  background:var(--g900);color:white;border-radius:30px;padding:10px 22px;font-size:.85rem;font-weight:600;
+  z-index:9999;pointer-events:none;transition:transform .3s cubic-bezier(.34,1.56,.64,1),opacity .3s;
+  opacity:0;max-width:90vw;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.25)}
+#toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+#toast.success{background:var(--green-d)}
+#toast.warn{background:#92400e}
+#toast.err{background:var(--red)}
+
+/* ─── Result ─── */
+#result{display:none;margin-top:40px;animation:fadeUp .4s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.result-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px}
+.result-title{font-size:1.05rem;font-weight:800}
+.edit-btn{background:white;color:var(--blue);border:2px solid var(--blue);border-radius:20px;
+  padding:7px 20px;font-size:.8rem;font-weight:700;cursor:pointer;transition:all .15s}
+.edit-btn:hover{background:var(--blue);color:white}
+.print-btn{background:var(--g100);color:var(--g600);border:1.5px solid var(--g200);border-radius:20px;
+  padding:7px 18px;font-size:.78rem;font-weight:600;cursor:pointer;margin-left:8px;transition:all .15s}
+.print-btn:hover{background:var(--g200)}
+.sum-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:20px}
+.sum-card{background:white;border-radius:10px;padding:14px 16px;box-shadow:var(--sh)}
+.sum-card-lbl{font-size:.63rem;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px}
+.sum-card-val{font-size:1rem;font-weight:800}
+.tbl-wrap{background:white;border-radius:var(--r);box-shadow:var(--sh-md);overflow:hidden}
+table{width:100%;border-collapse:collapse}
+thead{background:linear-gradient(135deg,var(--blue-d),var(--blue));color:white}
+thead th{padding:12px 16px;text-align:left;font-size:.72rem;font-weight:700;letter-spacing:.6px;text-transform:uppercase;white-space:nowrap}
+tbody tr:nth-child(even){background:var(--g50)}
+tbody tr:hover{background:var(--blue-ll)}
+tbody td{padding:11px 16px;font-size:.86rem;border-bottom:1px solid var(--g100);vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+.td-leg{display:inline-block;background:var(--blue-l);color:var(--blue);border-radius:5px;padding:2px 8px;font-size:.72rem;font-weight:800}
+.td-ap{font-weight:800;font-size:.95rem;letter-spacing:.5px}
+.td-fn{display:inline-block;background:var(--g100);color:var(--g700);border-radius:5px;padding:2px 8px;font-size:.78rem;font-weight:700}
+.td-dt{font-variant-numeric:tabular-nums;font-size:.82rem}
+.td-em{color:var(--g400);font-style:italic;font-size:.8rem}
+
+/* ─── Flight Search Modal ─── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;
+  display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(3px)}
+.modal-overlay.open{display:flex}
+.modal{background:white;border-radius:18px;box-shadow:var(--sh-lg);width:100%;max-width:540px;
+  max-height:90vh;overflow-y:auto;animation:modalIn .25s cubic-bezier(.34,1.56,.64,1)}
+@keyframes modalIn{from{opacity:0;transform:scale(.93) translateY(16px)}to{opacity:1;transform:none}}
+.modal-head{background:linear-gradient(135deg,var(--blue-d),var(--blue));color:white;
+  padding:16px 20px;border-radius:16px 16px 0 0;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0}
+.modal-head-title{font-size:.95rem;font-weight:800;display:flex;align-items:center;gap:8px}
+.modal-close{background:none;border:none;color:white;font-size:1.3rem;cursor:pointer;opacity:.8;transition:opacity .15s;line-height:1}
+.modal-close:hover{opacity:1}
+.modal-route{background:var(--blue-ll);padding:14px 20px;border-bottom:1px solid var(--g200)}
+.modal-route-airports{display:flex;align-items:center;gap:12px;font-size:1.1rem;font-weight:800;color:var(--g900)}
+.modal-route-airports .ap-from{color:var(--green)}
+.modal-route-airports .ap-to{color:var(--purple)}
+.modal-route-arrow{color:var(--g300);font-size:1.2rem}
+.modal-route-date{font-size:.78rem;color:var(--g500);margin-top:4px;font-weight:600}
+.modal-body{padding:20px}
+.modal-search-row{display:flex;gap:8px;margin-bottom:16px}
+.modal-search-input{flex:1;border:2px solid var(--g200);border-radius:var(--rs);padding:9px 12px;
+  font-size:.9rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;outline:none;transition:border-color .15s}
+.modal-search-input:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(37,99,235,.1)}
+.modal-search-input::placeholder{font-weight:400;letter-spacing:0;text-transform:none}
+.modal-search-btn{background:var(--blue);color:white;border:none;border-radius:var(--rs);
+  padding:9px 18px;font-size:.85rem;font-weight:700;cursor:pointer;transition:background .15s;white-space:nowrap}
+.modal-search-btn:hover{background:var(--blue-d)}
+.modal-search-btn:disabled{opacity:.55;cursor:default}
+.modal-results{margin-bottom:16px}
+.modal-loading{text-align:center;padding:24px;color:var(--g500);font-size:.85rem}
+.modal-spin{display:inline-block;animation:spin .7s linear infinite;font-size:1.2rem}
+.modal-no-result{text-align:center;padding:16px;color:var(--g500);font-size:.82rem;background:var(--g50);border-radius:var(--rs)}
+.modal-no-result a{color:var(--blue);text-decoration:none;font-weight:600}
+.modal-no-result a:hover{text-decoration:underline}
+
+.result-card{border:2px solid var(--g200);border-radius:10px;padding:12px 14px;margin-bottom:8px;
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  cursor:pointer;transition:all .15s;background:white}
+.result-card:hover{border-color:var(--blue);background:var(--blue-ll);transform:translateX(3px)}
+.result-card-left{flex:1}
+.rc-flight{font-size:1rem;font-weight:800;color:var(--g900)}
+.rc-airline{font-size:.75rem;color:var(--g500);margin-top:1px}
+.rc-times{font-size:.82rem;color:var(--g700);margin-top:5px;font-variant-numeric:tabular-nums}
+.rc-select-btn{flex-shrink:0;background:var(--blue);color:white;border:none;border-radius:8px;
+  padding:7px 14px;font-size:.78rem;font-weight:700;cursor:pointer;transition:background .15s;white-space:nowrap}
+.rc-select-btn:hover{background:var(--blue-d)}
+
+.modal-divider{display:flex;align-items:center;gap:10px;margin:16px 0;color:var(--g400);font-size:.75rem;font-weight:700;letter-spacing:.5px}
+.modal-divider::before,.modal-divider::after{content:'';flex:1;height:1px;background:var(--g200)}
+
+.modal-manual{background:var(--g50);border-radius:10px;padding:14px}
+.modal-manual-title{font-size:.72rem;font-weight:700;color:var(--g600);text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px}
+.modal-manual-grid{display:flex;flex-direction:column;gap:8px}
+.manual-row{display:flex;gap:8px;align-items:flex-end}
+.mfld{display:flex;flex-direction:column;gap:3px}
+.mfld label{font-size:.62rem;font-weight:700;color:var(--g500);text-transform:uppercase;letter-spacing:.6px}
+.mfld input{border:1.5px solid var(--g200);border-radius:var(--rs);padding:7px 9px;font-size:.85rem;
+  color:var(--g900);outline:none;transition:border-color .15s;background:white}
+.mfld input:focus{border-color:var(--blue)}
+.mfld.mfld-fn{flex:0 0 110px}
+.mfld.mfld-date{flex:1;min-width:120px}
+.mfld.mfld-time{flex:0 0 95px}
+.modal-apply-btn{width:100%;margin-top:10px;background:linear-gradient(135deg,var(--green-d),var(--green));
+  color:white;border:none;border-radius:9px;padding:11px;font-size:.88rem;font-weight:800;cursor:pointer;transition:opacity .15s}
+.modal-apply-btn:hover{opacity:.9}
+
+@media(max-width:640px){
+  .ph{padding:20px 16px}.main{padding:20px 12px 40px}.trip-dates{gap:14px}
+  .endpoints-row{grid-template-columns:1fr;gap:0}
+  .ep-arrow{padding-top:2px;padding-bottom:2px;font-size:1rem}
+  .flight-dt-row{flex-direction:column}
+  .flight-dep-grp,.flight-arr-grp{flex-wrap:wrap}
+  .fld.fld-flight,.fld.fld-date,.fld.fld-time{flex:1 1 100%}
+  .fdt-sep{display:none}
+  .modal{border-radius:14px}
+}
+@media print{.ph,.gen-wrap,.add-leg-wrap,.leg-remove,.modal-overlay{display:none!important}body{background:white}.tbl-wrap{box-shadow:none}}
+/* ─── Import bar (in header) ─── */
+.import-bar{margin-top:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center}
+.import-btn{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.15);
+  color:white;border:1.5px solid rgba(255,255,255,.4);border-radius:20px;
+  padding:7px 18px;font-size:.8rem;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap}
+.import-btn:hover{background:rgba(255,255,255,.28)}
+.import-sched-btn{display:inline-flex;align-items:center;gap:6px;
+  background:rgba(167,139,250,.25);
+  color:white;border:1.5px solid rgba(216,180,254,.6);border-radius:20px;
+  padding:7px 18px;font-size:.8rem;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap}
+.import-sched-btn:hover{background:rgba(167,139,250,.42)}
+#import-status,#import-sched-status{font-size:.75rem;color:rgba(255,255,255,.85)}
+/* ─── Export button ─── */
+.export-btn{background:linear-gradient(135deg,#065f46,#059669);color:white;border:none;
+  border-radius:20px;padding:7px 18px;font-size:.8rem;font-weight:700;cursor:pointer;
+  display:inline-flex;align-items:center;gap:5px;transition:all .15s;white-space:nowrap}
+.export-btn:hover{opacity:.9;transform:translateY(-1px)}
+
+/* ─── Generate Schedule button ─── */
+.sched-btn{background:linear-gradient(135deg,var(--purple),#6d28d9);color:white;border:none;border-radius:30px;
+  padding:15px 36px;font-size:1rem;font-weight:800;cursor:pointer;letter-spacing:.5px;
+  box-shadow:0 4px 18px rgba(124,58,237,.4);transition:all .2s;display:flex;align-items:center;gap:10px}
+.sched-btn:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(124,58,237,.5)}
+
+/* ─── Schedule section ─── */
+#schedule{display:none;margin-top:40px;animation:fadeUp .4s ease}
+.sched-title-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px}
+.sched-title{font-size:1.05rem;font-weight:800}
+.sched-title-btns{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sched-clear-btn{background:white;color:var(--red);border:1.5px solid var(--red-m);border-radius:20px;
+  padding:6px 16px;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .15s}
+.sched-clear-btn:hover{background:var(--red-l)}
+.sched-excel-btn{background:linear-gradient(135deg,#065f46,#059669);color:white;border:none;
+  border-radius:20px;padding:6px 16px;font-size:.78rem;font-weight:700;cursor:pointer;
+  display:inline-flex;align-items:center;gap:5px;transition:all .15s}
+.sched-excel-btn:hover{opacity:.9;transform:translateY(-1px)}
+
+/* ─── Schedule table container ─── */
+.sched-outer{overflow:auto;max-height:calc(100vh - 220px);border-radius:var(--r);
+  box-shadow:var(--sh-md);background:white;position:relative}
+.sched-table{border-collapse:separate;border-spacing:0;min-width:100%;table-layout:auto}
+
+/* ─── Row 1: Date headers — sticky top:0 ─── */
+.sched-table thead tr.sched-hd-row th{
+  position:sticky;top:0;z-index:10;
+  background:linear-gradient(135deg,#5b21b6,var(--purple));color:white;
+  padding:0;font-size:.72rem;font-weight:700;letter-spacing:.4px;
+  border-right:1px solid rgba(255,255,255,.15);
+  border-bottom:1px solid rgba(255,255,255,.2);white-space:nowrap}
+/* ─── Row 2: Location row — sticky top:40px (refined by JS) ─── */
+.sched-table thead tr.sched-loc-row td,
+.sched-table thead tr.sched-loc-row th{
+  position:sticky;top:40px;z-index:9;
+  background:var(--purple-l);
+  border-right:1px solid #c4b5fd;border-bottom:2px solid #a78bfa}
+/* ─── Sticky corner cells ─── */
+.sched-corner{position:sticky!important;left:0;z-index:12!important;min-width:80px;text-align:center;
+  background:linear-gradient(135deg,var(--blue-d),#1d4ed8)!important;color:white!important;
+  padding:10px 8px;border-right:2px solid rgba(255,255,255,.3)!important}
+.sched-loc-corner{position:sticky!important;left:0;z-index:12!important;min-width:80px;text-align:center;
+  background:var(--blue-ll)!important;color:var(--blue-d);padding:8px;
+  font-size:.7rem;font-weight:800;border-right:2px solid #93c5fd!important}
+/* ─── Sticky time column — applies to both body rows AND tfoot Note row ─── */
+.sched-table tbody td.sched-time,
+.sched-table tfoot  td.sched-time{
+  position:sticky;left:0;z-index:8;
+  background:var(--blue-ll);color:var(--blue-d);
+  font-size:.78rem;font-weight:800;text-align:center;
+  padding:6px 8px;white-space:nowrap;min-width:80px;
+  border-right:2px solid #93c5fd;border-bottom:1px solid var(--g200)}
+.sched-table tbody td.sched-time-custom{background:#e0f2fe}
+.sched-time-inner{outline:none;cursor:text;display:block;text-align:center;min-width:56px}
+.sched-time-inner:focus{background:#dbeafe;border-radius:4px;padding:0 4px}
+
+/* ─── Date header editable cell ─── */
+.sched-date-hd-cell{min-width:130px;padding:0;border-right:1px solid rgba(255,255,255,.15)}
+.sched-date-hd-inner{display:block;padding:8px 10px;min-height:40px;outline:none;cursor:text;
+  font-size:.78rem;font-weight:700;color:white;text-align:center;line-height:1.3}
+.sched-date-hd-inner:focus{background:rgba(255,255,255,.15)}
+
+/* ─── Location row cells ─── */
+.sched-loc-cell{padding:0;min-width:130px;border-right:1px solid #c4b5fd}
+.sched-loc-inner{display:block;padding:6px 10px;min-height:32px;outline:none;cursor:text;
+  font-size:.8rem;font-weight:600;color:#6d28d9;text-align:center}
+.sched-loc-inner:focus{background:#f3e8ff}
+.sched-loc-inner:empty::before{content:'地點…';color:#c4b5fd;pointer-events:none;font-weight:400;font-size:.7rem}
+
+/* ─── Add col header cells ─── */
+.sched-add-col-th{background:linear-gradient(135deg,#5b21b6,var(--purple))!important;
+  padding:0 8px!important;position:sticky!important;top:0!important;z-index:10!important;
+  border-left:1px dashed rgba(255,255,255,.3)!important}
+.sched-add-col-loc{background:var(--purple-l)!important;position:sticky!important;
+  top:40px!important;z-index:9!important;border-left:1px dashed #c4b5fd!important}
+
+/* ─── Data cells ─── */
+.sched-data-cell{padding:0;vertical-align:top;min-width:130px;background:white;
+  border-right:1px solid var(--g200);border-bottom:1px solid var(--g200);position:relative}
+.sched-table tbody tr:nth-child(even) .sched-data-cell{background:var(--g50)}
+.sched-table tbody tr:hover .sched-data-cell{background:var(--amber-l)}
+.sched-data-cell.sched-selected{background:#fef9c3!important;outline:2px inset #f59e0b}
+.sched-data-cell.sched-merged{background:#f0fdf4!important}
+.sched-data-cell.sched-merged:hover{background:#dcfce7!important}
+
+/* ─── Cell inner content ─── */
+.sched-cell-inner{display:block;min-height:44px;padding:6px 22px 6px 8px;
+  font-size:.8rem;color:var(--g900);outline:none;cursor:text;
+  line-height:1.4;white-space:pre-wrap;word-break:break-word}
+.sched-cell-inner:focus{background:var(--blue-ll)}
+.sched-cell-inner:empty::before{content:'點擊輸入';color:var(--g300);font-size:.68rem;pointer-events:none}
+
+/* ─── Merge circle button ─── */
+.sched-merge-circle{position:absolute;top:3px;right:3px;width:14px;height:14px;border-radius:50%;
+  border:1.5px solid var(--g300);background:white;cursor:pointer;
+  transition:all .15s;z-index:2;padding:0;font-size:0}
+.sched-merge-circle:hover{border-color:var(--amber);background:var(--amber-l);transform:scale(1.18)}
+.sched-selected .sched-merge-circle{border-color:#f59e0b!important;background:#fbbf24!important}
+.sched-split-btn{border-color:var(--green)!important;background:var(--green-l)!important;
+  font-size:8px!important;color:var(--green-d)!important;font-weight:800}
+.sched-split-btn:hover{background:var(--green)!important;color:white!important}
+
+/* ─── Merge toolbar bar ─── */
+#sched-merge-bar{display:none;flex-direction:row;align-items:center;justify-content:center;
+  gap:10px;margin-top:10px;padding:8px 20px;
+  background:var(--g900);color:white;border-radius:30px;
+  font-size:.82rem;font-weight:700;
+  box-shadow:0 4px 20px rgba(0,0,0,.25);
+  width:fit-content;margin-left:auto;margin-right:auto}
+#sched-merge-bar.show{display:flex}
+.sched-merge-confirm-btn{background:var(--amber);color:var(--g900);border:none;border-radius:20px;
+  padding:5px 14px;font-size:.78rem;font-weight:800;cursor:pointer;white-space:nowrap}
+.sched-merge-confirm-btn:hover{opacity:.85}
+.sched-cancel-sel-btn{background:transparent;color:var(--g400);border:1px solid var(--g500);
+  border-radius:20px;padding:4px 12px;font-size:.75rem;cursor:pointer;transition:all .15s;white-space:nowrap}
+.sched-cancel-sel-btn:hover{color:white;border-color:white}
+
+/* ─── Add row / col buttons ─── */
+.sched-add-btn{background:transparent;border:1.5px dashed;border-radius:20px;
+  padding:4px 14px;font-size:.72rem;font-weight:700;cursor:pointer;transition:all .18s;
+  display:inline-flex;align-items:center;gap:4px}
+.sched-add-col-btn{border-color:rgba(255,255,255,.5);color:rgba(255,255,255,.85);white-space:nowrap}
+.sched-add-col-btn:hover{background:rgba(255,255,255,.18);border-color:white;color:white}
+
+/* ─── Time cell selection circle ─── */
+/* padding-left makes room for the circle button;
+   position:relative is intentionally omitted — the sticky rule above already
+   creates a positioning context for the absolutely-placed circle. */
+.sched-table tbody td.sched-time{padding-left:24px}
+.sched-time-circle{
+  position:absolute;top:50%;left:3px;transform:translateY(-50%);
+  width:14px;height:14px;border-radius:50%;
+  border:1.5px solid var(--g300);background:white;cursor:pointer;
+  transition:all .15s;padding:0;font-size:0;flex-shrink:0}
+.sched-time-circle:hover{border-color:var(--blue);background:var(--blue-l)}
+.sched-time-circle.t-active{border-color:var(--blue)!important;background:var(--blue)!important;box-shadow:0 0 0 2px rgba(37,99,235,.2)}
+.sched-row-time-selected .sched-time{background:#dbeafe!important}
+.sched-row-time-selected .sched-data-cell{background:#eff6ff!important;outline:1px solid var(--blue-l)}
+.sched-time-toolbar{
+  display:flex;gap:3px;margin-top:5px;flex-wrap:wrap}
+.sched-time-tool-btn{
+  border:none;border-radius:4px;padding:2px 6px;font-size:.6rem;
+  font-weight:700;cursor:pointer;transition:all .12s;white-space:nowrap}
+.sched-time-tool-btn:hover{opacity:.8;transform:scale(1.05)}
+.scht-add{background:var(--blue-l);color:var(--blue)}
+.scht-del{background:var(--red-l);color:var(--red)}
+
+/* ─── Note (text) rows — draggable ─── */
+.sched-row-note .sched-time{background:var(--amber-l)!important;color:var(--amber)!important;cursor:move}
+.sched-row-note.drag-over-top{border-top:2px solid var(--blue)!important}
+.sched-row-note.drag-over-bottom{border-bottom:2px solid var(--blue)!important}
+.sched-row-note.dragging-ghost{opacity:.4}
+.sched-drag-handle{position:absolute;top:50%;left:2px;transform:translateY(-50%);
+  font-size:.8rem;opacity:.45;user-select:none;cursor:grab;line-height:1}
+
+/* ─── Bottom Note row — scrolls with content (NOT frozen / NOT sticky-bottom) ─── */
+.sched-table tfoot tr.sched-note-footer td{
+  border-top:2px solid var(--green);background:var(--green-l)}
+/* Note time cell: sticky-left only (column A stays, row scrolls vertically) */
+.sched-note-footer .sched-note-time-cell{
+  /* position:sticky + left:0 already comes from tfoot td.sched-time above */
+  background:var(--green-l)!important;  /* override the blue bg from sched-time */
+  color:var(--green-d)!important;
+  border-right:2px solid #86efac!important;
+  padding:6px 8px;font-size:.72rem;font-weight:800;
+  text-align:center;white-space:nowrap;min-width:80px}
+.sched-note-footer .sched-note-data-cell{
+  padding:0;border-right:1px solid #bbf7d0}
+.sched-note-cell-inner{display:block;min-height:34px;padding:5px 8px;outline:none;
+  font-size:.8rem;color:var(--g700);cursor:text;line-height:1.4}
+.sched-note-cell-inner:empty::before{content:'備註…';color:var(--g400);font-size:.68rem;pointer-events:none}
+.sched-note-add-cell{padding:4px 8px;background:var(--green-l);border-left:1px dashed #86efac}
+
+/* ─── Schedule section import button ─── */
+.sched-import-btn{display:inline-flex;align-items:center;gap:5px;
+  background:rgba(124,58,237,.12);color:var(--purple);border:1.5px solid #c4b5fd;
+  border-radius:20px;padding:6px 14px;font-size:.78rem;font-weight:700;cursor:pointer;
+  transition:all .15s}
+.sched-import-btn:hover{background:rgba(124,58,237,.2)}
+
+/* ─── Auto-fill flights button ─── */
+.sched-autofill-btn{display:inline-flex;align-items:center;gap:5px;
+  background:linear-gradient(135deg,#1e3a8a,var(--blue));color:white;border:none;
+  border-radius:20px;padding:6px 14px;font-size:.78rem;font-weight:700;cursor:pointer;
+  transition:all .15s;white-space:nowrap}
+.sched-autofill-btn:hover{opacity:.88;transform:translateY(-1px)}
+
+/* ─── 儲存格顏色標記 ─── */
+.color-palette { display: flex; gap: 6px; align-items: center; border-left: 1px solid var(--g600); padding-left: 12px; margin-left: 6px; }
+.sched-color-btn { width: 22px; height: 22px; border-radius: 50%; border: 2px solid white; cursor: pointer; transition: transform 0.15s; padding: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+.sched-color-btn:hover { transform: scale(1.2); }
+.sched-color-btn.c-clear { background: white; position: relative; }
+.sched-color-btn.c-clear::after { content:''; position:absolute; top:50%; left:15%; right:15%; height:2px; background:#dc2626; transform:translateY(-50%) rotate(45deg); }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+</head>
+<body>
+
+<div class="modal-overlay" id="modal-overlay" onclick="onOverlayClick(event)">
+  <div class="modal" id="modal">
+    <div class="modal-head">
+      <div class="modal-head-title">✈ 查詢航班</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-route" id="modal-route">
+      <div class="modal-route-airports">
+        <span class="ap-from" id="modal-from-code">—</span>
+        <span class="modal-route-arrow">→</span>
+        <span class="ap-to" id="modal-to-code">—</span>
+      </div>
+      <div class="modal-route-date" id="modal-date-label"></div>
+    </div>
+    <div class="modal-body">
+      <div class="modal-search-row">
+        <input class="modal-search-input" id="modal-fn-input" type="text"
+          placeholder="輸入航班號碼，如 BR26、AS478" maxlength="8"
+          onkeydown="if(event.key==='Enter')searchFlight()">
+        <button class="modal-search-btn" id="modal-search-btn" onclick="searchFlight()">🔍 查詢</button>
+      </div>
+      <div class="modal-results" id="modal-results"></div>
+      <div class="modal-divider">或手動填入</div>
+      <div class="modal-manual">
+        <div class="modal-manual-title">直接填入航班資訊</div>
+        <div class="modal-manual-grid">
+          <div class="manual-row">
+            <div class="mfld mfld-fn">
+              <label>✈ 航班號碼</label>
+              <input id="m-fn" type="text" placeholder="BR26" maxlength="8"
+                oninput="this.value=this.value.toUpperCase()">
+            </div>
+          </div>
+          <div class="manual-row">
+            <span style="font-size:.7rem;font-weight:700;color:var(--g500);padding-bottom:2px;align-self:flex-end;white-space:nowrap">🛫 起飛</span>
+            <div class="mfld mfld-date" style="flex:1">
+              <label>日期</label>
+              <input id="m-dep-date" type="date">
+            </div>
+            <div class="mfld mfld-time">
+              <label>時間</label>
+              <input id="m-dep-time" type="time">
+            </div>
+          </div>
+          <div class="manual-row">
+            <span style="font-size:.7rem;font-weight:700;color:var(--g500);padding-bottom:2px;align-self:flex-end;white-space:nowrap">🛬 降落</span>
+            <div class="mfld mfld-date" style="flex:1">
+              <label>日期</label>
+              <input id="m-arr-date" type="date">
+            </div>
+            <div class="mfld mfld-time">
+              <label>時間</label>
+              <input id="m-arr-time" type="time">
+            </div>
+          </div>
+        </div>
+        <button class="modal-apply-btn" onclick="applyManual()">✅ 確認填入</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="ph">
+  <div class="studio-tag">J.C studio</div>
+  <h1>✈ 行程規劃系統</h1>
+  <p>設定行程日期，選擇起訖地點，填入航班與起降時間</p>
+  <div class="trip-dates">
+    <div class="trip-dates-title">整體行程期間</div>
+    <div class="date-grp">
+      <label>🛫 出發日期</label>
+      <input type="date" id="dep-date" onchange="onTripDepDate()">
+    </div>
+    <div class="date-grp">
+      <label>🛬 回程日期</label>
+      <input type="date" id="ret-date" onchange="onTripRetDate()">
+      <span id="ret-date-warn" style="font-size:.68rem;color:#fca5a5;margin-top:2px;display:none">⚠ 不可早於出發日</span>
+    </div>
+    <span class="trip-duration" id="dur-lbl"></span>
+
+<div class="clock-grp">
+    <select class="clock-select" id="clock-1-tz" onchange="updateClockDisplay()"></select>
+    <div class="clock-display">
+      <div class="clock-date" id="clock-1-date"></div>
+      <div class="clock-time" id="clock-1-time"></div>
+    </div>
+  </div>
+
+  <div class="clock-grp">
+    <select class="clock-select" id="clock-2-tz" onchange="updateClockDisplay()"></select>
+    <div class="clock-display">
+      <div class="clock-date" id="clock-2-date"></div>
+      <div class="clock-time" id="clock-2-time"></div>
+    </div>
+  </div>
+
+  </div>
+  <div class="import-bar">
+    <label class="import-btn" for="import-xlsx-input">
+      📂 匯入航班計畫
+    </label>
+    <input type="file" id="import-xlsx-input" accept=".xlsx" style="display:none"
+      onchange="importFromExcel(this)">
+    <span id="import-status"></span>
+    <label class="import-sched-btn" for="import-sched-input">
+      📅 匯入行程計畫
+    </label>
+    <input type="file" id="import-sched-input" accept=".xlsx" style="display:none"
+      onchange="importFromScheduleExcel(this)">
+    <span id="import-sched-status"></span>
+  </div>
+</div>
+
+<div class="main">
+  <div class="sec-title">
+    <div class="sec-num">2</div>
+    <div>
+      <div class="sec-lbl">航段規劃</div>
+      <div class="sec-sub">選擇每段航班的國家 → 城市 → 機場，填入航班號碼與起降時刻</div>
+    </div>
+  </div>
+
+  <div id="builder"></div>
+
+  <div class="add-leg-wrap">
+    <button class="add-leg-btn" onclick="addLeg()">＋ 新增下一航段</button>
+  </div>
+
+  <div class="gen-wrap" style="gap:14px;flex-wrap:wrap">
+    <button class="gen-btn" onclick="generate()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+        <rect x="9" y="3" width="6" height="4" rx="2"/>
+        <path d="M9 12h6M9 16h4"/>
+      </svg>
+      Generate Flight
+    </button>
+    <button class="sched-btn" onclick="generateSchedule()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+        <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+        <line x1="9" y1="15" x2="15" y2="15"/>
+      </svg>
+      Generate Schedule
+    </button>
+  </div>
+
+  <div id="result">
+    <div class="result-bar">
+      <div class="result-title">📋 行程總表</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button class="edit-btn" onclick="backToEdit()">✏ 返回編輯</button>
+        <button class="print-btn" onclick="window.print()">🖨 列印</button>
+      </div>
+    </div>
+    <div class="sum-grid" id="sum-grid"></div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+      <button class="export-btn" onclick="exportToExcel()">📥 匯出 Excel</button>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>航段</th><th>出發地</th><th>目的地</th><th>航班</th>
+            <th>起飛日期</th><th>起飛時間</th><th>降落日期</th><th>降落時間</th>
+          </tr>
+        </thead>
+        <tbody id="tbl-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="schedule">
+    <div class="sched-title-bar">
+      <div class="sched-title">📅 行程時間表</div>
+      <div class="sched-title-btns">
+        <button class="sched-autofill-btn" onclick="autoFillFlightsToSchedule()" title="將航班計畫中的航班號碼、起降時間自動填入表格">
+          ✈ 自動填入航班
+        </button>
+        <label class="sched-import-btn" for="import-sched-input-2" title="匯入行程計畫 Excel">
+          📅 匯入行程計畫
+        </label>
+        <input type="file" id="import-sched-input-2" accept=".xlsx" style="display:none"
+          onchange="importFromScheduleExcel(this)">
+        <button class="sched-excel-btn" onclick="exportScheduleExcel()">📥 匯出 Excel</button>
+        <button class="sched-clear-btn" onclick="clearSchedule()">✕ 關閉</button>
+      </div>
+    </div>
+    <div class="sched-outer">
+      <table class="sched-table" id="sched-table"></table>
+    </div>
+    <div id="sched-merge-bar"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ════════════════════════════════════════
+   GEO DATA  country → city → airports
+   ════════════════════════════════════════ */
+const GEO = {
+  TW:{ label:'🇹🇼 台灣 Taiwan', cities:{
+    Taipei:{     label:'台北/桃園 Taipei',     airports:[{c:'TPE',n:'桃園國際機場 Taoyuan'},{c:'TSA',n:'松山機場 Songshan'}]},
+    Kaohsiung:{  label:'高雄 Kaohsiung',        airports:[{c:'KHH',n:'小港機場 Kaohsiung Intl'}]},
+    Taichung:{   label:'台中 Taichung',          airports:[{c:'RMQ',n:'清泉崗 Taichung Intl'}]},
+    Tainan:{     label:'台南 Tainan',            airports:[{c:'TNN',n:'台南機場 Tainan'}]},
+  }},
+  US:{ label:'🇺🇸 美國 United States', cities:{
+    SanFrancisco:{ label:'舊金山 San Francisco',  airports:[{c:'SFO',n:'舊金山國際機場 SFO Intl'}]},
+    LosAngeles:{   label:'洛杉磯 Los Angeles',     airports:[{c:'LAX',n:'洛杉磯國際機場 LAX'},{c:'BUR',n:'好萊塢伯班克 Burbank'},{c:'SNA',n:'約翰韋恩 John Wayne'}]},
+    NewYork:{      label:'紐約 New York',          airports:[{c:'JFK',n:'甘迺迪 JFK Intl'},{c:'EWR',n:'紐瓦克 Newark'},{c:'LGA',n:'拉瓜迪亞 LaGuardia'}]},
+    Seattle:{      label:'西雅圖 Seattle',         airports:[{c:'SEA',n:'西雅圖塔科馬 Sea-Tac'}]},
+    Chicago:{      label:'芝加哥 Chicago',         airports:[{c:'ORD',n:'歐黑爾 O\'Hare'},{c:'MDW',n:'中途島 Midway'}]},
+    Boston:{       label:'波士頓 Boston',          airports:[{c:'BOS',n:'洛根 Logan Intl'}]},
+    Dallas:{       label:'達拉斯 Dallas',          airports:[{c:'DFW',n:'達拉斯沃思堡 DFW'},{c:'DAL',n:'愛田 Love Field'}]},
+    Miami:{        label:'邁阿密 Miami',           airports:[{c:'MIA',n:'邁阿密 Miami Intl'}]},
+    Atlanta:{      label:'亞特蘭大 Atlanta',       airports:[{c:'ATL',n:'哈茨菲爾德 ATL'}]},
+    Denver:{       label:'丹佛 Denver',            airports:[{c:'DEN',n:'丹佛 Denver Intl'}]},
+    LasVegas:{     label:'拉斯維加斯 Las Vegas',   airports:[{c:'LAS',n:'哈利·里德 Harry Reid'}]},
+    Honolulu:{     label:'火奴魯魯 Honolulu',      airports:[{c:'HNL',n:'丹尼爾井上 Inouye Intl'}]},
+    Portland:{     label:'波特蘭 Portland',        airports:[{c:'PDX',n:'波特蘭 Portland Intl'}]},
+    SanDiego:{     label:'聖地牙哥 San Diego',     airports:[{c:'SAN',n:'聖地牙哥 SAN Intl'}]},
+    Phoenix:{      label:'鳳凰城 Phoenix',         airports:[{c:'PHX',n:'天港 Sky Harbor'}]},
+    Washington:{   label:'華盛頓 Washington DC',   airports:[{c:'IAD',n:'杜勒斯 Dulles'},{c:'DCA',n:'雷根 Reagan National'}]},
+    Houston:{      label:'休士頓 Houston',         airports:[{c:'IAH',n:'喬治布希 Bush Intl'},{c:'HOU',n:'霍比 Hobby'}]},
+    Minneapolis:{  label:'明尼阿波利斯 Minneapolis',airports:[{c:'MSP',n:'明尼阿波利斯 MSP Intl'}]},
+    SanJose:{      label:'聖荷西 San Jose',        airports:[{c:'SJC',n:'聖荷西 SJC Intl'}]},
+    Anchorage:{    label:'安克雷奇 Anchorage',     airports:[{c:'ANC',n:'安克雷奇 ANC Intl'}]},
+  }},
+  JP:{ label:'🇯🇵 日本 Japan', cities:{
+    Tokyo:{   label:'東京 Tokyo',    airports:[{c:'NRT',n:'成田 Narita'},{c:'HND',n:'羽田 Haneda'}]},
+    Osaka:{   label:'大阪 Osaka',    airports:[{c:'KIX',n:'關西 Kansai'},{c:'ITM',n:'伊丹 Itami'}]},
+    Nagoya:{  label:'名古屋 Nagoya', airports:[{c:'NGO',n:'中部 Centrair'}]},
+    Fukuoka:{ label:'福岡 Fukuoka',  airports:[{c:'FUK',n:'福岡 Fukuoka'}]},
+    Sapporo:{ label:'札幌 Sapporo',  airports:[{c:'CTS',n:'新千歲 New Chitose'}]},
+    Okinawa:{ label:'沖繩 Okinawa',  airports:[{c:'OKA',n:'那霸 Naha'}]},
+  }},
+  KR:{ label:'🇰🇷 韓國 Korea', cities:{
+    Seoul:{ label:'首爾 Seoul',  airports:[{c:'ICN',n:'仁川 Incheon'},{c:'GMP',n:'金浦 Gimpo'}]},
+    Busan:{ label:'釜山 Busan',  airports:[{c:'PUS',n:'金海 Gimhae'}]},
+  }},
+  SG:{ label:'🇸🇬 新加坡 Singapore', cities:{
+    Singapore:{ label:'新加坡 Singapore', airports:[{c:'SIN',n:'樟宜 Changi'}]},
+  }},
+  HK:{ label:'🇭🇰 香港 Hong Kong', cities:{
+    HongKong:{ label:'香港 Hong Kong', airports:[{c:'HKG',n:'香港 HK Intl'}]},
+  }},
+  TH:{ label:'🇹🇭 泰國 Thailand', cities:{
+    Bangkok:{  label:'曼谷 Bangkok',     airports:[{c:'BKK',n:'素萬那普 Suvarnabhumi'},{c:'DMK',n:'廊曼 Don Mueang'}]},
+    ChiangMai:{ label:'清邁 Chiang Mai', airports:[{c:'CNX',n:'清邁 Chiang Mai Intl'}]},
+    Phuket:{   label:'普吉 Phuket',      airports:[{c:'HKT',n:'普吉 Phuket Intl'}]},
+  }},
+  GB:{ label:'🇬🇧 英國 UK', cities:{
+    London:{     label:'倫敦 London',          airports:[{c:'LHR',n:'希斯羅 Heathrow'},{c:'LGW',n:'蓋威克 Gatwick'},{c:'STN',n:'斯坦斯特德 Stansted'}]},
+    Manchester:{ label:'曼徹斯特 Manchester',  airports:[{c:'MAN',n:'曼徹斯特 Manchester'}]},
+  }},
+  FR:{ label:'🇫🇷 法國 France', cities:{
+    Paris:{ label:'巴黎 Paris', airports:[{c:'CDG',n:'戴高樂 Charles de Gaulle'},{c:'ORY',n:'奧利 Orly'}]},
+    Lyon:{  label:'里昂 Lyon',  airports:[{c:'LYS',n:'聖埃克絮佩里 Saint-Exupéry'}]},
+  }},
+  DE:{ label:'🇩🇪 德國 Germany', cities:{
+    Frankfurt:{  label:'法蘭克福 Frankfurt',   airports:[{c:'FRA',n:'法蘭克福 Frankfurt'}]},
+    Munich:{     label:'慕尼黑 Munich',        airports:[{c:'MUC',n:'慕尼黑 Munich'}]},
+    Dusseldorf:{ label:'杜塞道夫 Düsseldorf',  airports:[{c:'DUS',n:'杜塞道夫 Düsseldorf'}]},
+    Berlin:{     label:'柏林 Berlin',          airports:[{c:'BER',n:'柏林布蘭登堡 Brandenburg'}]},
+    Hamburg:{    label:'漢堡 Hamburg',         airports:[{c:'HAM',n:'漢堡 Hamburg'}]},
+    Nuremberg:{  label:'紐倫堡 Nuremberg',     airports:[{c:'NUE',n:'紐倫堡 Nuremberg'}]},
+    Stuttgart:{  label:'斯圖加特 Stuttgart',   airports:[{c:'STR',n:'斯圖加特 Stuttgart'}]},
+  }},
+  IT:{ label:'🇮🇹 義大利 Italy', cities:{
+    Rome:{    label:'羅馬 Rome',    airports:[{c:'FCO',n:'費烏米奇諾 Fiumicino'},{c:'CIA',n:'恰姆皮諾 Ciampino'}]},
+    Milan:{   label:'米蘭 Milan',   airports:[{c:'MXP',n:'馬爾彭薩 Malpensa'},{c:'LIN',n:'利納泰 Linate'}]},
+    Venice:{  label:'威尼斯 Venice',airports:[{c:'VCE',n:'馬可波羅 Marco Polo'}]},
+    Florence:{label:'佛羅倫斯 Florence',airports:[{c:'FLR',n:'貝斯普雷托 Peretola'}]},
+  }},
+  ES:{ label:'🇪🇸 西班牙 Spain', cities:{
+    Madrid:{    label:'馬德里 Madrid',    airports:[{c:'MAD',n:'阿道夫·蘇亞雷斯 Adolfo Suárez'}]},
+    Barcelona:{ label:'巴塞隆納 Barcelona',airports:[{c:'BCN',n:'巴塞隆納 El Prat'}]},
+    Malaga:{    label:'馬拉加 Málaga',    airports:[{c:'AGP',n:'科斯塔德爾索爾 Costa del Sol'}]},
+  }},
+  AT:{ label:'🇦🇹 奧地利 Austria', cities:{
+    Vienna:{ label:'維也納 Vienna', airports:[{c:'VIE',n:'維也納 Schwechat'}]},
+    Salzburg:{label:'薩爾斯堡 Salzburg',airports:[{c:'SZG',n:'莫扎特 Mozart'}]},
+  }},
+  CH:{ label:'🇨🇭 瑞士 Switzerland', cities:{
+    Zurich:{ label:'蘇黎世 Zurich',  airports:[{c:'ZRH',n:'蘇黎世 Kloten'}]},
+    Geneva:{ label:'日內瓦 Geneva',  airports:[{c:'GVA',n:'日內瓦 Cointrin'}]},
+    Basel:{  label:'巴塞爾 Basel',   airports:[{c:'BSL',n:'巴塞爾-米盧斯 EuroAirport'}]},
+  }},
+  BE:{ label:'🇧🇪 比利時 Belgium', cities:{
+    Brussels:{ label:'布魯塞爾 Brussels', airports:[{c:'BRU',n:'布魯塞爾 Zaventem'}]},
+  }},
+  PT:{ label:'🇵🇹 葡萄牙 Portugal', cities:{
+    Lisbon:{ label:'里斯本 Lisbon', airports:[{c:'LIS',n:'翁貝托·德爾加多 Humberto Delgado'}]},
+    Porto:{  label:'波多 Porto',   airports:[{c:'OPO',n:'薩博薩 Sá Carneiro'}]},
+  }},
+  NL:{ label:'🇳🇱 荷蘭 Netherlands', cities:{
+    Amsterdam:{ label:'阿姆斯特丹 Amsterdam', airports:[{c:'AMS',n:'史基浦 Schiphol'}]},
+  }},
+  SE:{ label:'🇸🇪 瑞典 Sweden', cities:{
+    Stockholm:{ label:'斯德哥爾摩 Stockholm', airports:[{c:'ARN',n:'阿蘭達 Arlanda'},{c:'BMA',n:'布羅馬 Bromma'}]},
+    Gothenburg:{label:'哥德堡 Gothenburg',    airports:[{c:'GOT',n:'蘭維克 Landvetter'}]},
+  }},
+  DK:{ label:'🇩🇰 丹麥 Denmark', cities:{
+    Copenhagen:{ label:'哥本哈根 Copenhagen', airports:[{c:'CPH',n:'卡斯特羅普 Kastrup'}]},
+  }},
+  NO:{ label:'🇳🇴 挪威 Norway', cities:{
+    Oslo:{ label:'奧斯陸 Oslo', airports:[{c:'OSL',n:'加德蒙 Gardermoen'}]},
+  }},
+  FI:{ label:'🇫🇮 芬蘭 Finland', cities:{
+    Helsinki:{ label:'赫爾辛基 Helsinki', airports:[{c:'HEL',n:'萬塔 Vantaa'}]},
+  }},
+  CZ:{ label:'🇨🇿 捷克 Czech Republic', cities:{
+    Prague:{ label:'布拉格 Prague', airports:[{c:'PRG',n:'瓦茨拉夫·哈維爾 Václav Havel'}]},
+  }},
+  HU:{ label:'🇭🇺 匈牙利 Hungary', cities:{
+    Budapest:{ label:'布達佩斯 Budapest', airports:[{c:'BUD',n:'費倫茨·李斯特 Liszt Ferenc'}]},
+  }},
+  PL:{ label:'🇵🇱 波蘭 Poland', cities:{
+    Warsaw:{ label:'華沙 Warsaw', airports:[{c:'WAW',n:'肖邦 Chopin'}]},
+    Krakow:{ label:'克拉科夫 Kraków', airports:[{c:'KRK',n:'巴利采 Balice'}]},
+  }},
+  GR:{ label:'🇬🇷 希臘 Greece', cities:{
+    Athens:{    label:'雅典 Athens',    airports:[{c:'ATH',n:'埃萊夫塞里奧斯·韋尼澤洛斯 El. Venizelos'}]},
+    Thessaloniki:{label:'塞薩洛尼基 Thessaloniki',airports:[{c:'SKG',n:'馬其頓 Macedonia'}]},
+  }},
+  TR:{ label:'🇹🇷 土耳其 Turkey', cities:{
+    Istanbul:{ label:'伊斯坦堡 Istanbul', airports:[{c:'IST',n:'伊斯坦堡 Istanbul Airport'},{c:'SAW',n:'薩比哈·格克琴 Sabiha Gökçen'}]},
+    Ankara:{   label:'安卡拉 Ankara',     airports:[{c:'ESB',n:'埃塞博阿 Esenboğa'}]},
+  }},
+  AU:{ label:'🇦🇺 澳洲 Australia', cities:{
+    Sydney:{    label:'雪梨 Sydney',     airports:[{c:'SYD',n:'金斯福德史密斯 Kingsford Smith'}]},
+    Melbourne:{ label:'墨爾本 Melbourne',airports:[{c:'MEL',n:'特立芬 Tullamarine'}]},
+    Brisbane:{  label:'布里斯本 Brisbane',airports:[{c:'BNE',n:'布里斯本 Brisbane'}]},
+    Perth:{     label:'伯斯 Perth',      airports:[{c:'PER',n:'伯斯 Perth'}]},
+    Adelaide:{  label:'阿德萊德 Adelaide',airports:[{c:'ADL',n:'阿德萊德 Adelaide'}]},
+  }},
+  NZ:{ label:'🇳🇿 紐西蘭 New Zealand', cities:{
+    Auckland:{   label:'奧克蘭 Auckland',    airports:[{c:'AKL',n:'奧克蘭 Auckland'}]},
+    Christchurch:{label:'基督城 Christchurch',airports:[{c:'CHC',n:'基督城 Christchurch'}]},
+  }},
+  CA:{ label:'🇨🇦 加拿大 Canada', cities:{
+    Vancouver:{ label:'溫哥華 Vancouver', airports:[{c:'YVR',n:'溫哥華 Vancouver Intl'}]},
+    Toronto:{   label:'多倫多 Toronto',   airports:[{c:'YYZ',n:'皮爾遜 Pearson Intl'}]},
+    Montreal:{  label:'蒙特婁 Montreal',  airports:[{c:'YUL',n:'特魯多 Trudeau'}]},
+    Calgary:{   label:'卡加利 Calgary',   airports:[{c:'YYC',n:'卡加利 Calgary Intl'}]},
+  }},
+  CN:{ label:'🇨🇳 中國 China', cities:{
+    Beijing:{  label:'北京 Beijing',   airports:[{c:'PEK',n:'首都 Capital Intl'},{c:'PKX',n:'大興 Daxing'}]},
+    Shanghai:{ label:'上海 Shanghai',  airports:[{c:'PVG',n:'浦東 Pudong'},{c:'SHA',n:'虹橋 Hongqiao'}]},
+    Guangzhou:{label:'廣州 Guangzhou', airports:[{c:'CAN',n:'白雲 Baiyun'}]},
+    Shenzhen:{ label:'深圳 Shenzhen',  airports:[{c:'SZX',n:'深圳 Shenzhen'}]},
+    Chengdu:{  label:'成都 Chengdu',   airports:[{c:'CTU',n:'天府 Tianfu'},{c:'TFU',n:'雙流 Shuangliu'}]},
+    Xiamen:{   label:'廈門 Xiamen',    airports:[{c:'XMN',n:'高崎 Gaoqi'}]},
+  }},
+  AE:{ label:'🇦🇪 阿聯酋 UAE', cities:{
+    Dubai:{     label:'杜拜 Dubai',     airports:[{c:'DXB',n:'杜拜 Dubai Intl'},{c:'DWC',n:'阿勒馬克圖姆 Al Maktoum'}]},
+    AbuDhabi:{  label:'阿布達比 Abu Dhabi',airports:[{c:'AUH',n:'扎耶德 Zayed Intl'}]},
+  }},
+  SA:{ label:'🇸🇦 沙烏地阿拉伯 Saudi Arabia', cities:{
+    Riyadh:{ label:'利雅德 Riyadh', airports:[{c:'RUH',n:'哈利德國王 King Khalid'}]},
+    Jeddah:{ label:'吉達 Jeddah',   airports:[{c:'JED',n:'阿卜杜勒阿齊茲 KAIA'}]},
+  }},
+  MY:{ label:'🇲🇾 馬來西亞 Malaysia', cities:{
+    KualaLumpur:{ label:'吉隆坡 Kuala Lumpur', airports:[{c:'KUL',n:'吉隆坡 KLIA'},{c:'SZB',n:'蘇邦 Subang'}]},
+    Penang:{      label:'檳城 Penang',          airports:[{c:'PEN',n:'檳城 Penang Intl'}]},
+    KotaKinabalu:{label:'亞庇 Kota Kinabalu',   airports:[{c:'BKI',n:'亞庇 KKIA'}]},
+  }},
+  PH:{ label:'🇵🇭 菲律賓 Philippines', cities:{
+    Manila:{ label:'馬尼拉 Manila', airports:[{c:'MNL',n:'尼諾伊·阿基諾 Ninoy Aquino'}]},
+    Cebu:{   label:'宿霧 Cebu',    airports:[{c:'CEB',n:'麥克丹 Mactan-Cebu'}]},
+  }},
+  ID:{ label:'🇮🇩 印尼 Indonesia', cities:{
+    Jakarta:{ label:'雅加達 Jakarta',   airports:[{c:'CGK',n:'蘇加諾哈達 Soekarno-Hatta'}]},
+    Bali:{    label:'峇里島 Bali',      airports:[{c:'DPS',n:'恩古拉·萊 Ngurah Rai'}]},
+    Surabaya:{ label:'泗水 Surabaya',  airports:[{c:'SUB',n:'朱安達 Juanda'}]},
+  }},
+  VN:{ label:'🇻🇳 越南 Vietnam', cities:{
+    Hanoi:{      label:'河內 Hanoi',          airports:[{c:'HAN',n:'內排 Noi Bai'}]},
+    HoChiMinh:{  label:'胡志明市 Ho Chi Minh', airports:[{c:'SGN',n:'新山一 Tan Son Nhat'}]},
+    DaNang:{     label:'峴港 Da Nang',         airports:[{c:'DAD',n:'峴港 Da Nang Intl'}]},
+  }},
+  KH:{ label:'🇰🇭 柬埔寨 Cambodia', cities:{
+    PhnomPenh:{ label:'金邊 Phnom Penh', airports:[{c:'PNH',n:'金邊 Phnom Penh Intl'}]},
+    SiemReap:{  label:'暹粒 Siem Reap',  airports:[{c:'SAI',n:'暹粒 Angkor'}]},
+  }},
+  MV:{ label:'🇲🇻 馬爾地夫 Maldives', cities:{
+    Male:{ label:'馬列 Malé', airports:[{c:'MLE',n:'維拉納 Velana Intl'}]},
+  }},
+  IN:{ label:'🇮🇳 印度 India', cities:{
+    Mumbai:{    label:'孟買 Mumbai',    airports:[{c:'BOM',n:'賈特拉帕蒂 Chhatrapati Shivaji'}]},
+    Delhi:{     label:'德里 Delhi',     airports:[{c:'DEL',n:'英迪拉·甘地 Indira Gandhi'}]},
+    Bangalore:{ label:'班加羅爾 Bangalore',airports:[{c:'BLR',n:'肯佩戈達 Kempegowda'}]},
+    Chennai:{   label:'欽奈 Chennai',   airports:[{c:'MAA',n:'欽奈 Chennai'}]},
+  }},
+  QA:{ label:'🇶🇦 卡達 Qatar', cities:{
+    Doha:{ label:'多哈 Doha', airports:[{c:'DOH',n:'哈馬德 Hamad Intl'}]},
+  }},
+  ZA:{ label:'🇿🇦 南非 South Africa', cities:{
+    Johannesburg:{ label:'約翰尼斯堡 Johannesburg', airports:[{c:'JNB',n:'奧利·塔博·姆貝基 OR Tambo'}]},
+    CapeTown:{     label:'開普敦 Cape Town',         airports:[{c:'CPT',n:'開普敦 Cape Town Intl'}]},
+  }},
+};
+
+/* IATA→ICAO for FR24 query variants */
+const IATA_ICAO = {
+  AA:'AAL',AS:'ASA',UA:'UAL',DL:'DAL',WN:'SWA',B6:'JBU',F9:'FFT',NK:'NKS',HA:'HAL',
+  BR:'EVA',CI:'CAL',NH:'ANA',JL:'JAL',CX:'CPA',SQ:'SIA',KE:'KAL',OZ:'AAR',
+  TG:'THA',MH:'MAS',GA:'GIA',PR:'PAL',VN:'HVN',QF:'QFA',NZ:'ANZ',
+  EK:'UAE',QR:'QTR',EY:'ETD',LH:'DLH',AF:'AFR',BA:'BAW',KL:'KLM',
+  AY:'FIN',SK:'SAS',OS:'AUA',IB:'IBE',TP:'TAP',TK:'THY',
+  JX:'STB',IT:'TTW',AE:'MDA',
+};
+
+/* ════════════════════════════════════════
+   STATE
+   ════════════════════════════════════════ */
+let _uid = 0;
+const uid = () => ++_uid;
+
+const state = {
+  legs: [{
+    id: uid(),
+    fromCountry:'', fromCity:'', fromAirport:'',
+    toCountry:'',   toCity:'',   toAirport:'',
+    flight:'',
+    depDate:'', depTime:'',
+    arrDate:'', arrTime:'',
+    autoFilled: false,
+  }]
+};
+
+let _modalLegIdx = null;
+
+/* ════════════════════════════════════════
+   LEG CRUD
+   ════════════════════════════════════════ */
+function addLeg() {
+  const last = state.legs[state.legs.length - 1];
+  state.legs.push({
+    id: uid(),
+    fromCountry: last?.toCountry || '',
+    fromCity:    last?.toCity    || '',
+    fromAirport: last?.toAirport || '',
+    toCountry:'', toCity:'', toAirport:'',
+    flight:'', depDate:'', depTime:'', arrDate:'', arrTime:'',
+    autoFilled: false,
+  });
+  render();
+  setTimeout(() => {
+    const i = state.legs.length - 1;
+    document.querySelector(`[data-ep="${i}-to-country"]`)?.focus();
+  }, 30);
+}
+
+function removeLeg(i) {
+  if (state.legs.length <= 1) return;
+  state.legs.splice(i, 1);
+  render();
+}
+
+function insertLeg(afterIdx) {
+  const prev = state.legs[afterIdx];
+  state.legs.splice(afterIdx + 1, 0, {
+    id: uid(),
+    fromCountry: prev.toCountry || '', fromCity: prev.toCity || '', fromAirport: prev.toAirport || '',
+    toCountry: '', toCity: '', toAirport: '',
+    flight: '', depDate: prev.arrDate || prev.depDate || '', depTime: '', arrDate: '', arrTime: '',
+    autoFilled: false,
+  });
+  render();
+  setTimeout(() => {
+    const cards = document.querySelectorAll('.leg-card');
+    if (cards[afterIdx + 1]) cards[afterIdx + 1].scrollIntoView({behavior:'smooth', block:'center'});
+  }, 80);
+}
+
+/* ════════════════════════════════════════
+   CASCADING DROPDOWNS  (targeted DOM updates)
+   ════════════════════════════════════════ */
+function onCountry(legIdx, side, val) {
+  const p = side === 'from' ? 'from' : 'to';
+
+  const countryCustomEl = document.querySelector(`[data-ep="${legIdx}-${side}-country-custom"]`);
+  const cityEl          = document.querySelector(`[data-ep="${legIdx}-${side}-city"]`);
+  const cityCustomEl    = document.querySelector(`[data-ep="${legIdx}-${side}-city-custom"]`);
+  const apEl            = document.querySelector(`[data-ep="${legIdx}-${side}-airport"]`);
+  const codeEl          = document.querySelector(`[data-ep="${legIdx}-${side}-code"]`);
+
+  if (val === 'OTHER') {
+    // Show country text input, hide city dropdown, show city text input
+    if (countryCustomEl) { countryCustomEl.style.display = 'block'; countryCustomEl.value = ''; countryCustomEl.focus(); }
+    if (cityEl)          { cityEl.style.display = 'none'; }
+    if (cityCustomEl)    { cityCustomEl.style.display = 'block'; cityCustomEl.value = ''; }
+    if (apEl)            { apEl.style.display = 'none'; apEl.innerHTML = '<option value="">— 選擇機場 —</option>'; apEl.disabled = true; }
+    if (codeEl)          codeEl.value = '';
+    state.legs[legIdx][p+'Country'] = '';
+    state.legs[legIdx][p+'City']    = '';
+    state.legs[legIdx][p+'Airport'] = '';
+    updateLegPreview(legIdx);
+    return;
+  }
+
+  // Known country selected — hide custom inputs, show normal dropdowns
+  if (countryCustomEl) { countryCustomEl.style.display = 'none'; countryCustomEl.value = ''; }
+  if (cityCustomEl)    { cityCustomEl.style.display = 'none'; cityCustomEl.value = ''; }
+
+  state.legs[legIdx][p+'Country'] = val;
+  state.legs[legIdx][p+'City']    = '';
+  state.legs[legIdx][p+'Airport'] = '';
+
+  // Repopulate city select and show it
+  if (cityEl) {
+    cityEl.style.display = 'block';
+    cityEl.innerHTML = '<option value="">— 選擇城市 —</option>' +
+      (val ? Object.entries(GEO[val].cities).map(([k,v]) =>
+        `<option value="${k}">${v.label}</option>`
+      ).join('') + '<option value="OTHER">🏙 其他（自行輸入）...</option>' : '');
+    cityEl.disabled = !val;
+  }
+  // Reset airport select
+  if (apEl) {
+    apEl.style.display = 'block';
+    apEl.innerHTML = '<option value="">— 選擇機場 —</option>';
+    apEl.disabled = true;
+  }
+  if (codeEl) codeEl.value = '';
+  updateLegPreview(legIdx);
+}
+
+function onCity(legIdx, side, val) {
+  const p = side === 'from' ? 'from' : 'to';
+  const country = state.legs[legIdx][p+'Country'];
+
+  const cityCustomEl = document.querySelector(`[data-ep="${legIdx}-${side}-city-custom"]`);
+  const apEl         = document.querySelector(`[data-ep="${legIdx}-${side}-airport"]`);
+  const codeEl       = document.querySelector(`[data-ep="${legIdx}-${side}-code"]`);
+
+  if (val === 'OTHER') {
+    // Show city text input, hide airport select
+    if (cityCustomEl) { cityCustomEl.style.display = 'block'; cityCustomEl.value = ''; cityCustomEl.focus(); }
+    if (apEl)         { apEl.style.display = 'none'; apEl.innerHTML = '<option value="">— 選擇機場 —</option>'; apEl.disabled = true; }
+    if (codeEl)       codeEl.value = '';
+    state.legs[legIdx][p+'City']    = '';
+    state.legs[legIdx][p+'Airport'] = '';
+    updateLegPreview(legIdx);
+    return;
+  }
+
+  // Known city selected — hide custom city input
+  if (cityCustomEl) { cityCustomEl.style.display = 'none'; cityCustomEl.value = ''; }
+
+  state.legs[legIdx][p+'City']    = val;
+  state.legs[legIdx][p+'Airport'] = '';
+
+  const airports = val && country ? (GEO[country]?.cities[val]?.airports || []) : [];
+  if (apEl) {
+    apEl.style.display = 'block';
+    apEl.innerHTML = '<option value="">— 選擇機場 —</option>' +
+      airports.map(a => `<option value="${a.c}">${a.c} — ${a.n}</option>`).join('');
+    apEl.disabled = !val;
+    // Auto-select first airport if only one
+    if (airports.length === 1) {
+      apEl.value = airports[0].c;
+      onAirportSel(legIdx, side, airports[0].c);
+      return;
+    }
+  }
+  if (codeEl) codeEl.value = '';
+  updateLegPreview(legIdx);
+}
+
+function onAirportSel(legIdx, side, val) {
+  const p = side === 'from' ? 'from' : 'to';
+  state.legs[legIdx][p+'Airport'] = val;
+  const codeEl = document.querySelector(`[data-ep="${legIdx}-${side}-code"]`);
+  if (codeEl) codeEl.value = val;
+  updateLegPreview(legIdx);
+}
+
+function onCodeInput(legIdx, side, val) {
+  const p = side === 'from' ? 'from' : 'to';
+  const upper = val.toUpperCase();
+  state.legs[legIdx][p+'Airport'] = upper;
+  // Try to sync select
+  const apEl = document.querySelector(`[data-ep="${legIdx}-${side}-airport"]`);
+  if (apEl) apEl.value = upper;
+  updateLegPreview(legIdx);
+}
+
+function onCountryCustom(legIdx, side, val) {
+  const p = side === 'from' ? 'from' : 'to';
+  state.legs[legIdx][p+'Country'] = val;
+  // Also clear city/airport since country changed
+  state.legs[legIdx][p+'City']    = '';
+  state.legs[legIdx][p+'Airport'] = '';
+  const cityCustomEl = document.querySelector(`[data-ep="${legIdx}-${side}-city-custom"]`);
+  if (cityCustomEl) cityCustomEl.value = '';
+  const codeEl = document.querySelector(`[data-ep="${legIdx}-${side}-code"]`);
+  if (codeEl) codeEl.value = '';
+  updateLegPreview(legIdx);
+}
+
+function onCityCustom(legIdx, side, val) {
+  const p = side === 'from' ? 'from' : 'to';
+  state.legs[legIdx][p+'City']    = val;
+  state.legs[legIdx][p+'Airport'] = '';
+  const codeEl = document.querySelector(`[data-ep="${legIdx}-${side}-code"]`);
+  if (codeEl) codeEl.value = '';
+  updateLegPreview(legIdx);
+}
+
+/* ── 24-hour time input helpers ── */
+function onTime24(el, legIdx, which) {
+  // Strip non-digit/colon, keep only digits for auto-formatting
+  let raw = el.value.replace(/[^0-9]/g, '');
+  if (raw.length > 4) raw = raw.slice(0, 4);
+  // Auto-insert colon after 2 digits
+  let fmt = raw.length > 2 ? raw.slice(0,2) + ':' + raw.slice(2) : raw;
+  // Preserve cursor: only rewrite if changed
+  if (el.value !== fmt) el.value = fmt;
+  // Save valid complete time to state
+  if (/^\d{2}:\d{2}$/.test(fmt)) {
+    const h = +fmt.slice(0,2), m = +fmt.slice(3);
+    if (h <= 23 && m <= 59) {
+      state.legs[legIdx][which === 'dep' ? 'depTime' : 'arrTime'] = fmt;
+    }
+  }
+}
+
+function blurTime24(el, legIdx, which) {
+  let v = el.value.trim();
+  if (!v) return;
+  // Normalise partial input e.g. "9:5" → "09:05"
+  const match = v.match(/^(\d{1,2}):?(\d{0,2})$/);
+  if (match) {
+    const h = match[1].padStart(2,'0');
+    const mn = (match[2]||'00').padStart(2,'0');
+    if (+h <= 23 && +mn <= 59) {
+      el.value = h + ':' + mn;
+      state.legs[legIdx][which === 'dep' ? 'depTime' : 'arrTime'] = el.value;
+      return;
+    }
+  }
+  // Invalid — revert to last saved value
+  el.value = state.legs[legIdx][which === 'dep' ? 'depTime' : 'arrTime'] || '';
+}
+
+function updateLegPreview(legIdx) {
+  const leg = state.legs[legIdx];
+  const el = document.getElementById(`leg-preview-${legIdx}`);
+  if (el) el.textContent = `${leg.fromAirport||'?'} → ${leg.toAirport||'?'}`;
+}
+
+/* ════════════════════════════════════════
+   DATE VALIDATION
+   ════════════════════════════════════════ */
+function computeMinDate(legIdx) {
+  const base = document.getElementById('dep-date')?.value || '';
+  let min = base;
+  for (let i = 0; i < legIdx; i++) {
+    const d = state.legs[i].depDate;
+    if (d && (!min || d > min)) min = d;
+  }
+  return min;
+}
+
+function validateLegDate(legIdx) {
+  const leg = state.legs[legIdx];
+  const minDate = computeMinDate(legIdx);
+  const dateInput = document.querySelector(`[data-leg-dep-date="${legIdx}"]`);
+  const warnEl    = document.querySelector(`[data-leg-warn="${legIdx}"]`);
+  if (!dateInput) return;
+  dateInput.min = minDate || '';
+  const isInvalid = !!(leg.depDate && minDate && leg.depDate < minDate);
+  dateInput.classList.toggle('invalid', isInvalid);
+  if (warnEl) {
+    if (isInvalid) { warnEl.textContent = `⚠ 需 ≥ ${fmtDate(minDate)}`; warnEl.style.display = ''; }
+    else warnEl.style.display = 'none';
+  }
+}
+
+function validateAllDates() { state.legs.forEach((_,i) => validateLegDate(i)); }
+
+/* Called when the blue section "出發日期" picker changes */
+function onLookupDateChange(legIdx, val) {
+  state.legs[legIdx].depDate = val;
+  // Update chip
+  const chip = document.getElementById(`dep-chip-${legIdx}`);
+  if (chip) {
+    if (val) { chip.textContent = fmtDate(val); chip.classList.remove('empty'); }
+    else     { chip.textContent = '（未選擇）'; chip.classList.add('empty'); }
+  }
+  // Sync down to the dep-date field in the times row
+  const depEl = document.querySelector(`[data-leg-dep-date="${legIdx}"]`);
+  if (depEl) depEl.value = val;
+  // Auto-fill arrDate if empty
+  if (!state.legs[legIdx].arrDate) state.legs[legIdx].arrDate = val;
+  const arrEl = document.querySelector(`[data-leg-arr-date="${legIdx}"]`);
+  if (arrEl && !arrEl.value) arrEl.value = val;
+  validateLegDate(legIdx);
+  for (let i = legIdx + 1; i < state.legs.length; i++) validateLegDate(i);
+}
+
+/* Called when the dep-date field changes */
+function onDepDateChange(legIdx, val) {
+  state.legs[legIdx].depDate = val;
+  // Auto-fill arrDate if empty
+  if (!state.legs[legIdx].arrDate) state.legs[legIdx].arrDate = val;
+  const arrEl = document.querySelector(`[data-leg-arr-date="${legIdx}"]`);
+  if (arrEl && !arrEl.value) arrEl.value = val;
+  validateLegDate(legIdx);
+  for (let i = legIdx + 1; i < state.legs.length; i++) validateLegDate(i);
+}
+
+/* Trip-level date validation */
+function onTripDepDate() {
+  const dep = document.getElementById('dep-date').value;
+  const retEl = document.getElementById('ret-date');
+  retEl.min = dep || '';
+  const warn = document.getElementById('ret-date-warn');
+  if (dep && retEl.value && retEl.value < dep) {
+    retEl.value = dep;
+    if (warn) warn.style.display = '';
+    setTimeout(() => { if(warn) warn.style.display='none'; }, 2500);
+  }
+  calcDuration();
+  validateAllDates();
+}
+
+function onTripRetDate() {
+  const dep = document.getElementById('dep-date').value;
+  const ret = document.getElementById('ret-date').value;
+  const warn = document.getElementById('ret-date-warn');
+  if (dep && ret && ret < dep) {
+    document.getElementById('ret-date').value = dep;
+    if (warn) { warn.style.display=''; setTimeout(()=>{warn.style.display='none';},2500); }
+    showToast('⚠ 回程日期已自動調整為出發日期', 'warn');
+  } else {
+    if (warn) warn.style.display = 'none';
+  }
+  calcDuration();
+}
+
+function onTripDateChange() { calcDuration(); validateAllDates(); }
+
+/* ════════════════════════════════════════
+   FLIGHT SEARCH MODAL
+   ════════════════════════════════════════ */
+function openModal(legIdx) {
+  _modalLegIdx = legIdx;
+  const leg = state.legs[legIdx];
+  const from = leg.fromAirport || '—';
+  const to   = leg.toAirport   || '—';
+
+  document.getElementById('modal-from-code').textContent = from;
+  document.getElementById('modal-to-code').textContent   = to;
+  document.getElementById('modal-date-label').textContent =
+    leg.depDate ? fmtDate(leg.depDate) : '（請先選擇起飛日期）';
+
+  // Pre-fill manual section with existing values
+  document.getElementById('m-fn').value       = leg.flight   || '';
+  document.getElementById('m-dep-date').value = leg.depDate  || '';
+  document.getElementById('m-dep-time').value = leg.depTime  || '';
+  document.getElementById('m-arr-date').value = leg.arrDate  || leg.depDate || '';
+  document.getElementById('m-arr-time').value = leg.arrTime  || '';
+
+  // Clear previous search results
+  document.getElementById('modal-results').innerHTML = '';
+  document.getElementById('modal-fn-input').value = leg.flight || '';
+
+  document.getElementById('modal-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('modal-fn-input').focus(), 100);
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  _modalLegIdx = null;
+}
+
+function onOverlayClick(e) {
+  if (e.target === document.getElementById('modal-overlay')) closeModal();
+}
+
+/* Flight search inside modal */
+async function searchFlight() {
+  const fn = document.getElementById('modal-fn-input').value.trim().toUpperCase();
+  if (!fn) { showToast('請輸入航班號碼', 'warn'); return; }
+
+  const leg = _modalLegIdx !== null ? state.legs[_modalLegIdx] : null;
+  const dt       = leg?.depDate     || '';
+  const fromCode = leg?.fromAirport || '';
+  const toCode   = leg?.toAirport   || '';
+
+  const btn = document.getElementById('modal-search-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="modal-spin">⏳</span>';
+
+  const resultsEl = document.getElementById('modal-results');
+  resultsEl.innerHTML = '<div class="modal-loading"><span class="modal-spin">⏳</span> 查詢中，請稍候…</div>';
+
+  // Also pre-fill manual fn input
+  document.getElementById('m-fn').value = fn;
+  if (dt) {
+    document.getElementById('m-dep-date').value = dt;
+    document.getElementById('m-arr-date').value = dt;
+  }
+
+  const result = await doFlightLookup(fn, dt, fromCode, toCode);
+
+  btn.disabled = false;
+  btn.innerHTML = '🔍 查詢';
+
+  if (result) {
+    renderModalResult(fn, result);
+  } else {
+    const googleQ  = dt ? `${fn} flight ${dt}` : `${fn} flight schedule`;
+    const googleUrl = `https://www.google.com/search?q=${encodeURIComponent(googleQ)}`;
+    resultsEl.innerHTML = `
+      <div class="modal-no-result">
+        ⚠ 無法自動取得 <strong>${fn}</strong> 的時刻資料。<br>
+        可 <a href="${googleUrl}" target="_blank">前往 Google 查詢 ↗</a>，再於下方手動填入。
+      </div>`;
+    showToast(`未找到 ${fn} 的資料，請手動填入`, 'warn');
+  }
+}
+
+function renderModalResult(fn, result) {
+  const resultsEl = document.getElementById('modal-results');
+  const depLabel = result.depStr ? `出發 <strong>${result.depStr}</strong>` : '';
+  const arrLabel = result.arrStr ? `到達 <strong>${result.arrStr}</strong>` : '';
+  const times = [depLabel, arrLabel].filter(Boolean).join(' &nbsp;→&nbsp; ');
+  const src = result.source === 'fa' ? ' <small style="color:var(--g400)">(FlightAware)</small>' : '';
+  resultsEl.innerHTML = `
+    <div class="result-card" onclick="selectResult('${fn}','${result.depStr || ''}','${result.arrStr || ''}')">
+      <div class="result-card-left">
+        <div class="rc-flight">${fn}${src}</div>
+        <div class="rc-times">${times || '時刻待確認'}</div>
+      </div>
+      <button class="rc-select-btn" onclick="event.stopPropagation();selectResult('${fn}','${result.depStr||''}','${result.arrStr||''}')">選擇此航班 ✓</button>
+    </div>`;
+
+  // Also fill manual fields
+  if (result.depStr) document.getElementById('m-dep-time').value = result.depStr;
+  if (result.arrStr) document.getElementById('m-arr-time').value = result.arrStr;
+}
+
+function selectResult(fn, depTime, arrTime) {
+  if (_modalLegIdx === null) return;
+  const leg = state.legs[_modalLegIdx];
+  const depDate = document.getElementById('m-dep-date').value || leg.depDate || '';
+  const arrDate = document.getElementById('m-arr-date').value || depDate;
+  applyFlightData(_modalLegIdx, fn, depDate, depTime, arrDate, arrTime);
+  closeModal();
+  showToast(`✅ 已填入 ${fn}`, 'success');
+}
+
+function applyManual() {
+  if (_modalLegIdx === null) return;
+  const fn      = document.getElementById('m-fn').value.trim().toUpperCase();
+  const depDate = document.getElementById('m-dep-date').value;
+  const depTime = document.getElementById('m-dep-time').value;
+  const arrDate = document.getElementById('m-arr-date').value;
+  const arrTime = document.getElementById('m-arr-time').value;
+  if (!fn && !depDate && !depTime && !arrDate && !arrTime) {
+    showToast('請至少填入一項資訊', 'warn'); return;
+  }
+  applyFlightData(_modalLegIdx, fn, depDate, depTime, arrDate, arrTime);
+  closeModal();
+  showToast('✅ 已手動填入', 'success');
+}
+
+function applyFlightData(legIdx, fn, depDate, depTime, arrDate, arrTime) {
+  const leg = state.legs[legIdx];
+  if (fn)      leg.flight    = fn;
+  if (depDate) leg.depDate   = depDate;
+  if (depTime) leg.depTime   = depTime;
+  if (arrDate) leg.arrDate   = arrDate;
+  if (arrTime) leg.arrTime   = arrTime;
+  leg.autoFilled = true;
+  window._pendingQuery = { legIdx, fn, depDate, depTime, arrDate, arrTime, filled: true };
+
+  // Update DOM without full re-render
+  const fnEl = document.querySelector(`[data-leg-fn="${legIdx}"]`);
+  if (fnEl) fnEl.value = fn || '';
+  const ddEl = document.querySelector(`[data-leg-dep-date="${legIdx}"]`);
+  if (ddEl) { ddEl.value = depDate || ''; ddEl.classList.add('auto-filled'); }
+  // Also sync the blue section lookup picker and chip
+  const luEl = document.querySelector(`[data-leg-lookup-date="${legIdx}"]`);
+  if (luEl && depDate) luEl.value = depDate;
+  const chip = document.getElementById(`dep-chip-${legIdx}`);
+  if (chip && depDate) { chip.textContent = fmtDate(depDate); chip.classList.remove('empty'); }
+  const dtEl = document.querySelector(`[data-leg-dep-time="${legIdx}"]`);
+  if (dtEl) { dtEl.value = depTime || ''; dtEl.classList.add('auto-filled'); }
+  const adEl = document.querySelector(`[data-leg-arr-date="${legIdx}"]`);
+  if (adEl) { adEl.value = arrDate || ''; adEl.classList.add('auto-filled'); }
+  const atEl = document.querySelector(`[data-leg-arr-time="${legIdx}"]`);
+  if (atEl) { atEl.value = arrTime || ''; atEl.classList.add('auto-filled'); }
+  const badge = document.querySelector(`[data-auto-badge="${legIdx}"]`);
+  if (badge) badge.style.display = 'inline';
+  validateAllDates();
+}
+
+/* ════════════════════════════════════════
+   FLIGHT LOOKUP LOGIC (FR24 + FlightAware)
+   ════════════════════════════════════════ */
+async function doFlightLookup(fn, dt, fromCode = '', toCode = '') {
+  const iataM = fn.match(/^([A-Z]{2})(\d+[A-Z]?)$/);
+  const variants = [fn];
+  if (iataM && IATA_ICAO[iataM[1]] && IATA_ICAO[iataM[1]] + iataM[2] !== fn)
+    variants.push(IATA_ICAO[iataM[1]] + iataM[2]);
+
+  // Use noon UTC on the date to avoid browser-timezone issues
+  const ts = dt
+    ? Math.floor(new Date(dt + 'T12:00:00Z').getTime() / 1000)
+    : Math.floor(Date.now() / 1000);
+
+  const PROXIES = [
+    u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+    u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+    u => `https://thingproxy.freeboard.io/fetch/${encodeURIComponent(u)}`,
+    u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
+  ];
+
+  // fetchAndParse: returns a result or throws (so Promise.any can skip failures)
+  async function fetchAndParse(proxyUrl, q) {
+    const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) throw new Error('not ok');
+    const text = await res.text();
+    if (!text || text.startsWith('<!') || text.includes('"error"') || text.length < 30) throw new Error('bad body');
+    const json = JSON.parse(text);
+    const r = parseFR24(json, q, dt, fromCode, toCode);
+    if (!r) throw new Error('no result');
+    return r;
+  }
+
+  // Only use list.json — search.json has a different structure and causes parsing errors
+  const attempts = variants.flatMap(q => {
+    const api = `https://api.flightradar24.com/common/v1/flight/list.json?fetchBy=flight&query=${encodeURIComponent(q)}&timestamp=${ts}&limit=20&page=1`;
+    return PROXIES.map(mkProxy => fetchAndParse(mkProxy(api), q));
+  });
+
+  // ── Stage 1: race all FR24 attempts in parallel (structured JSON → reliable order) ──
+  try {
+    return await Promise.any(attempts);
+  } catch(_) {
+    // All FR24 paths failed — fall through to HTML scrapers
+  }
+
+  // ── Stage 2: HTML scrapers as sequential fallbacks (order can't be guaranteed) ──
+  // We try them in priority order; the first non-null result wins.
+  const r1 = await tryFlightAware(fn, dt);
+  if (r1) return r1;
+  const r2 = await tryGoogleFlight(fn, dt);
+  if (r2) return r2;
+  return await tryFlightStats(fn, dt);
+}
+
+function parseFR24(json, q, dt, fromCode = '', toCode = '') {
+  // Only trust the primary list.json data path — don't fall through to ambiguous paths
+  const flights = json?.result?.response?.data?.flight;
+  if (!Array.isArray(flights) || !flights.length) return null;
+
+  // --- Step 1: filter by origin/destination if provided ---
+  let pool = flights;
+  if (fromCode || toCode) {
+    const routeFiltered = flights.filter(f => {
+      const orig = (f?.airport?.origin?.code?.iata || '').toUpperCase();
+      const dest = (f?.airport?.destination?.code?.iata || '').toUpperCase();
+      if (fromCode && orig && orig !== fromCode.toUpperCase()) return false;
+      if (toCode  && dest && dest !== toCode.toUpperCase())   return false;
+      return true;
+    });
+    if (routeFiltered.length) pool = routeFiltered;
+    // If no exact match, keep the full pool (avoid returning nothing when IATA codes aren't in API)
+  }
+
+  // --- Step 2: narrow to the correct date ---
+  let picked = pool[0];
+  if (dt) {
+    const dateMatch = pool.find(f => {
+      const depTs = f?.time?.scheduled?.departure;
+      const tzOff = f?.airport?.origin?.timezone?.offset ?? 0;
+      if (!depTs) return false;
+      const d = new Date((depTs + tzOff) * 1000);
+      const s = `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
+      return s === dt;
+    });
+    if (dateMatch) picked = dateMatch;
+  }
+
+  // --- Step 3: extract + validate timestamps ---
+  const depTs = picked?.time?.scheduled?.departure;
+  const arrTs = picked?.time?.scheduled?.arrival;
+  if (!depTs || !arrTs) return null;  // require both timestamps
+
+  // Physics check: arrival must come after departure
+  if (arrTs <= depTs) return null;
+
+  // Max reasonable flight duration: 20 hours (handles longest commercial flights)
+  if ((arrTs - depTs) > 72000) return null;
+
+  const depOff = picked?.airport?.origin?.timezone?.offset ?? 0;
+  const arrOff = picked?.airport?.destination?.timezone?.offset ?? 0;
+
+  // Offset sanity: offsets should be in seconds (between -50400 and +50400 = ±14 hours)
+  // If the API returns hours instead of seconds, the value would be tiny (-14 to +14)
+  // In that case, multiply by 3600 to convert
+  const fixOff = v => (Math.abs(v) <= 14 ? v * 3600 : v);
+  const dOff = fixOff(depOff);
+  const aOff = fixOff(arrOff);
+
+  const depStr = tsHHMM(depTs, dOff);
+  const arrStr = tsHHMM(arrTs, aOff);
+  return { depStr, arrStr, source: 'fr24' };
+}
+
+async function tryFlightAware(fn, dt) {
+  const iataM = fn.match(/^([A-Z]{2})(\d+[A-Z]?)$/);
+  const faCode = iataM && IATA_ICAO[iataM[1]] ? IATA_ICAO[iataM[1]] + iataM[2] : fn;
+  const urls = [`https://www.flightaware.com/live/flight/${faCode}`];
+  if (dt) urls.unshift(`https://www.flightaware.com/live/flight/${faCode}/history/${dt.replace(/-/g,'')}`);
+  for (const url of urls) {
+    try {
+      const r = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+        { signal: AbortSignal.timeout(12000) });
+      if (!r.ok) continue;
+      const html = await r.text();
+      if (!html || html.length < 3000) continue;
+      const parsed = parseFA(html);
+      if (parsed) return parsed;
+    } catch(_) {}
+  }
+  return null;
+}
+
+function parseFA(html) {
+  const TZ = 'CST|CDT|PST|PDT|MST|MDT|EST|EDT|JST|HKT|SGT|ICT|AEST|AEDT|GMT';
+  const all = [...html.matchAll(new RegExp(`(\\d{1,2}:\\d{2})\\s+(${TZ})`, 'g'))]
+    .map(m => m[1].padStart(5,'0'));
+  const cw = [...html.matchAll(/noWrapTime[^>]*>([^<]+)</g)]
+    .map(m => { const t=m[1].trim().match(/(\d{1,2}:\d{2})/); return t?t[1].padStart(5,'0'):null; })
+    .filter(Boolean);
+  const times = [...new Set([...cw,...all])];
+  if (times.length >= 2) return { depStr:times[0], arrStr:times[1], source:'fa' };
+  return null;
+}
+
+/* Google: search "flight AS478 YYYY-MM-DD" via proxy, parse time patterns */
+async function tryGoogleFlight(fn, dt) {
+  const q = dt ? `flight ${fn} ${dt}` : `flight ${fn} today`;
+  const url = `https://www.google.com/search?q=${encodeURIComponent(q)}&hl=en&gl=us`;
+  const proxies = [
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+  ];
+  for (const pu of proxies) {
+    try {
+      const r = await fetch(pu, { signal: AbortSignal.timeout(10000) });
+      if (!r.ok) continue;
+      const html = await r.text();
+      if (!html || html.length < 2000 || /<title>.*captcha/i.test(html)) continue;
+      const parsed = parseGoogleTimes(html);
+      if (parsed) return parsed;
+    } catch(_) {}
+  }
+  return null;
+}
+
+function parseGoogleTimes(html) {
+  // Google flight card typically shows times like "10:30 AM" or "22:45"
+  const re12 = /\b(\d{1,2}:\d{2})\s*(AM|PM)\b/gi;
+  const re24 = /\b([01]?\d|2[0-3]):[0-5]\d\b/g;
+  function to24(h, m, ampm) {
+    let hh = Number(h);
+    if (/pm/i.test(ampm) && hh < 12) hh += 12;
+    if (/am/i.test(ampm) && hh === 12) hh = 0;
+    return String(hh).padStart(2,'0') + ':' + m;
+  }
+  const times = [];
+  let m;
+  const re12g = new RegExp(re12.source, 'gi');
+  while ((m = re12g.exec(html)) !== null) {
+    const [, hm, ap] = m;
+    const [h, min] = hm.split(':');
+    times.push(to24(h, min, ap));
+  }
+  if (times.length < 2) {
+    // Try 24h pattern if no 12h found
+    while ((m = re24.exec(html)) !== null) times.push(m[0].padStart(5,'0'));
+  }
+  const unique = [...new Set(times)];
+  if (unique.length >= 2) return { depStr: unique[0], arrStr: unique[1], source: 'google' };
+  return null;
+}
+
+/* FlightStats: clean HTML flight tracker */
+async function tryFlightStats(fn, dt) {
+  const iataM = fn.match(/^([A-Z]{2})(\d+[A-Z]?)$/);
+  if (!iataM) return null;
+  const [, al, num] = iataM;
+  const url = `https://www.flightstats.com/v2/flight-tracker/${al}/${num}`;
+  try {
+    const r = await fetch(
+      `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+      { signal: AbortSignal.timeout(10000) }
+    );
+    if (!r.ok) return null;
+    const html = await r.text();
+    if (!html || html.length < 2000) return null;
+    // FlightStats embeds times in __NEXT_DATA__ JSON
+    const nd = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+    if (nd) {
+      try {
+        const data = JSON.parse(nd[1]);
+        const flights = data?.props?.initialState?.flightTracker?.flight?.additionalFlightInfo
+          ?? data?.props?.pageProps?.flightDetails ?? null;
+        // Walk JSON looking for departure/arrival time strings
+        const str = JSON.stringify(data);
+        const times24 = [...str.matchAll(/"(?:departureTime|arrivalTime|scheduledDeparture|scheduledArrival)"\s*:\s*"([^"]+)"/g)]
+          .map(m => m[1]).filter(Boolean);
+        if (times24.length >= 2) {
+          const toHHMM = s => { const d = new Date(s); if (isNaN(d)) return null;
+            return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); };
+          const dep = toHHMM(times24[0]), arr = toHHMM(times24[1]);
+          if (dep && arr) return { depStr: dep, arrStr: arr, source: 'flightstats' };
+        }
+      } catch(_) {}
+    }
+    // Fallback: regex on HTML
+    return parseFA(html);
+  } catch(_) { return null; }
+}
+
+function tsHHMM(ts, off) {
+  const d = new Date((ts+off)*1000);
+  return String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0');
+}
+
+/* ════════════════════════════════════════
+   RENDER
+   ════════════════════════════════════════ */
+function render() {
+  const B = document.getElementById('builder');
+  B.innerHTML = '';
+
+  state.legs.forEach((leg, i) => {
+    const canRemove = state.legs.length > 1;
+    const minD = computeMinDate(i);
+
+    // Build endpoint HTML
+    const fromHTML = endpointHTML(i, 'from', leg.fromCountry, leg.fromCity, leg.fromAirport);
+    const toHTML   = endpointHTML(i, 'to',   leg.toCountry,   leg.toCity,   leg.toAirport);
+
+    B.insertAdjacentHTML('beforeend', `
+      <div class="leg-card">
+        <div class="leg-head">
+          <div style="display:flex;align-items:center">
+            <span class="leg-badge">LEG ${i+1}</span>
+            <span class="leg-preview" id="leg-preview-${i}">${leg.fromAirport||'?'} → ${leg.toAirport||'?'}</span>
+          </div>
+          ${canRemove ? `<button class="leg-remove" onclick="removeLeg(${i})" title="移除航段">×</button>` : ''}
+        </div>
+        <div class="leg-body">
+
+          <div class="endpoints-row">
+            ${fromHTML}
+            <div class="ep-arrow">→</div>
+            ${toHTML}
+          </div>
+
+          <div class="flight-dt-row">
+            <div class="flight-dep-grp">
+              <div class="fld fld-flight">
+                <label>✈ 航班號碼</label>
+                <input type="text" placeholder="BR26 / AS478"
+                  value="${esc(leg.flight)}"
+                  data-leg-fn="${i}"
+                  oninput="state.legs[${i}].flight=this.value.toUpperCase();this.value=this.value.toUpperCase()">
+              </div>
+              <div class="fld fld-date">
+                <label>🛫 起飛日期</label>
+                <input type="date" value="${leg.depDate}" min="${minD}"
+                  data-leg-dep-date="${i}"
+                  class="${leg.depDate&&minD&&leg.depDate<minD?'invalid':''}"
+                  onchange="onDepDateChange(${i},this.value)">
+              </div>
+              <div class="fld fld-time">
+                <label>起飛時間</label>
+                <input type="text" inputmode="numeric" placeholder="HH:MM" maxlength="5"
+                  value="${esc(leg.depTime)}"
+                  data-leg-dep-time="${i}"
+                  oninput="onTime24(this,${i},'dep')"
+                  onblur="blurTime24(this,${i},'dep')">
+              </div>
+            </div>
+            <div class="fdt-sep">／</div>
+            <div class="flight-arr-grp">
+              <div class="fld fld-date">
+                <label>🛬 降落日期</label>
+                <input type="date" value="${leg.arrDate||leg.depDate}"
+                  data-leg-arr-date="${i}"
+                  onchange="state.legs[${i}].arrDate=this.value">
+              </div>
+              <div class="fld fld-time">
+                <label>降落時間</label>
+                <input type="text" inputmode="numeric" placeholder="HH:MM" maxlength="5"
+                  value="${esc(leg.arrTime)}"
+                  data-leg-arr-time="${i}"
+                  oninput="onTime24(this,${i},'arr')"
+                  onblur="blurTime24(this,${i},'arr')">
+              </div>
+            </div>
+          </div>
+          <span class="date-warn-inline" data-leg-warn="${i}"
+            style="${leg.depDate&&minD&&leg.depDate<minD?'display:inline':'display:none'}"
+            >${leg.depDate&&minD&&leg.depDate<minD?'⚠ 起飛日期需 ≥ '+fmtDate(minD):''}</span>
+
+          ${i < state.legs.length - 1 ? `
+          <div class="insert-leg-wrap">
+            <button class="insert-leg-btn" onclick="insertLeg(${i})">＋ 插入航段</button>
+          </div>` : ''}
+        </div>
+      </div>`);
+  });
+
+  validateAllDates();
+}
+
+/* Build HTML for one endpoint (from or to) */
+function endpointHTML(legIdx, side, country, city, airport) {
+  const isFrom = side === 'from';
+  const selClass = isFrom ? 'from-sel' : 'to-sel';
+  const codeClass = isFrom ? 'from-code' : 'to-code';
+  const label = isFrom ? '🛫 出發地' : '🛬 目的地';
+
+  // Detect custom (free-typed) vs known GEO values
+  const knownCountry  = country && !!GEO[country];
+  const customCountry = country && !GEO[country];
+  const knownCity     = knownCountry && city && !!GEO[country].cities[city];
+  const customCity    = city && (customCountry || (knownCountry && !GEO[country].cities[city]));
+
+  // ─── 修改點：國家按字母排序 ───
+  const countryOpts = Object.entries(GEO)
+    .sort((a, b) => a[1].label.localeCompare(b[1].label, 'zh-TW')) // 依 Label 字幕排序
+    .map(([k,v]) =>
+      `<option value="${k}" ${(knownCountry && country===k)?'selected':''}>${v.label}</option>`
+    ).join('');
+
+  // City options (only when country is a known GEO key)
+  const cityOpts = knownCountry
+    ? Object.entries(GEO[country].cities).map(([k,v]) =>
+        `<option value="${k}" ${(knownCity && city===k)?'selected':''}>${v.label}</option>`
+      ).join('') : '';
+
+  // Airport options
+  const apOpts = (knownCountry && knownCity)
+    ? GEO[country].cities[city].airports.map(a =>
+        `<option value="${a.c}" ${airport===a.c?'selected':''}>${a.c} — ${a.n}</option>`
+      ).join('') : '';
+
+  // Visibility flags
+  const showCityDropdown    = knownCountry;                       
+  const showCountryCustom   = customCountry;                      
+  const showCityCustom      = customCountry || customCity;        
+  const showAirportDropdown = knownCountry && knownCity;          
+
+  return `
+    <div class="endpoint">
+      <div class="ep-label">${label}</div>
+
+      <select class="sel ${selClass}"
+        data-ep="${legIdx}-${side}-country"
+        onchange="onCountry(${legIdx},'${side}',this.value)">
+        <option value="">— 選擇國家 —</option>
+        ${countryOpts}
+        <option value="OTHER" ${customCountry?'selected':''}>🌍 其他（自行輸入）...</option>
+      </select>
+
+      <input type="text" class="sel ${selClass}"
+        placeholder="請輸入國家名稱"
+        style="margin-top:5px; display:${showCountryCustom?'block':'none'}"
+        data-ep="${legIdx}-${side}-country-custom"
+        value="${showCountryCustom ? esc(country) : ''}"
+        oninput="onCountryCustom(${legIdx},'${side}',this.value)">
+
+      <select class="sel ${selClass}" style="margin-top:5px; display:${showCityDropdown?'block':'none'}"
+        data-ep="${legIdx}-${side}-city"
+        ${knownCountry ? '' : 'disabled'}
+        onchange="onCity(${legIdx},'${side}',this.value)">
+        <option value="">— 選擇城市 —</option>
+        ${cityOpts}
+        <option value="OTHER" ${(knownCountry && customCity)?'selected':''}>🏙 其他（自行輸入）...</option>
+      </select>
+
+      <input type="text" class="sel ${selClass}"
+        placeholder="請輸入城市名稱"
+        style="margin-top:5px; display:${showCityCustom?'block':'none'}"
+        data-ep="${legIdx}-${side}-city-custom"
+        value="${showCityCustom ? esc(city) : ''}"
+        oninput="onCityCustom(${legIdx},'${side}',this.value)">
+
+      <select class="sel ${selClass}" style="margin-top:5px; display:${showAirportDropdown?'block':'none'}"
+        data-ep="${legIdx}-${side}-airport"
+        ${knownCity ? '' : 'disabled'}
+        onchange="onAirportSel(${legIdx},'${side}',this.value)">
+        <option value="">— 選擇機場 —</option>
+        ${apOpts}
+      </select>
+
+      <input type="text" class="code-inp ${codeClass}" style="margin-top:6px"
+        placeholder="或直接輸入機場代碼（TPE）"
+        value="${esc(airport)}" maxlength="4"
+        data-ep="${legIdx}-${side}-code"
+        oninput="onCodeInput(${legIdx},'${side}',this.value)">
+    </div>`;
+}
+
+/* ════════════════════════════════════════
+   GENERATE TABLE
+   ════════════════════════════════════════ */
+function generate() {
+  const hasErr = state.legs.some((leg,i) => {
+    const min = computeMinDate(i);
+    return leg.depDate && min && leg.depDate < min;
+  });
+  if (hasErr) { showToast('⚠ 請先修正日期順序錯誤', 'warn'); return; }
+
+  // Auto-fill top trip dates from legs if empty
+  const depEl = document.getElementById('dep-date');
+  const retEl = document.getElementById('ret-date');
+  if (!depEl.value && state.legs[0]?.depDate) {
+    depEl.value = state.legs[0].depDate;
+    onTripDepDate();
+  }
+  if (!retEl.value) {
+    const lastLeg = state.legs[state.legs.length - 1];
+    const lastDate = lastLeg.arrDate || lastLeg.depDate;
+    if (lastDate) { retEl.value = lastDate; calcDuration(); }
+  }
+
+  const tbody = document.getElementById('tbl-body');
+  const sumGrid = document.getElementById('sum-grid');
+  tbody.innerHTML = '';
+  let firstDate='', lastDate='';
+
+  state.legs.forEach((leg,i) => {
+    if (!firstDate && leg.depDate) firstDate = fmtDate(leg.depDate);
+    if (leg.depDate) lastDate = fmtDate(leg.depDate);
+    const fn = leg.flight
+      ? `<span class="td-fn">${esc(leg.flight)}</span>${leg.autoFilled?'<span style="font-size:.62rem;color:var(--green);margin-left:3px">●</span>':''}`
+      : '<span class="td-em">—</span>';
+
+    const fromPlace = legPlace(leg.fromCountry, leg.fromCity, leg.fromAirport);
+    const toPlace   = legPlace(leg.toCountry,   leg.toCity,   leg.toAirport);
+    tbody.insertAdjacentHTML('beforeend', `
+      <tr>
+        <td><span class="td-leg">LEG ${i+1}</span></td>
+        <td><span class="td-ap">${fromPlace}</span></td>
+        <td><span class="td-ap">${toPlace}</span></td>
+        <td>${fn}</td>
+        <td class="td-dt">${fmtDate(leg.depDate)||'<span class="td-em">—</span>'}</td>
+        <td class="td-dt">${leg.depTime||'<span class="td-em">—</span>'}</td>
+        <td class="td-dt">${fmtDate(leg.arrDate)||'<span class="td-em">—</span>'}</td>
+        <td class="td-dt">${leg.arrTime||'<span class="td-em">—</span>'}</td>
+      </tr>`);
+  });
+
+  const depDate = document.getElementById('dep-date').value;
+  const retDate = document.getElementById('ret-date').value;
+  let durTxt = '';
+  if (depDate && retDate) durTxt = `${Math.round((new Date(retDate)-new Date(depDate))/86400000)} 天`;
+
+  const firstLeg = state.legs[0];
+  const lastLeg  = state.legs[state.legs.length-1];
+  sumGrid.innerHTML = `
+    <div class="sum-card"><div class="sum-card-lbl">出發地</div>
+      <div class="sum-card-val">${legPlace(firstLeg.fromCountry,firstLeg.fromCity,firstLeg.fromAirport)}</div></div>
+    <div class="sum-card"><div class="sum-card-lbl">目的地</div>
+      <div class="sum-card-val">${legPlace(lastLeg.toCountry,lastLeg.toCity,lastLeg.toAirport)}</div></div>
+    <div class="sum-card"><div class="sum-card-lbl">出發日期</div>
+      <div class="sum-card-val">${depDate?fmtDate(depDate):firstDate||'—'}</div></div>
+    <div class="sum-card"><div class="sum-card-lbl">回程日期</div>
+      <div class="sum-card-val">${retDate?fmtDate(retDate):lastDate||'—'}</div></div>
+    <div class="sum-card"><div class="sum-card-lbl">行程天數</div>
+      <div class="sum-card-val">${durTxt||'—'}</div></div>
+    <div class="sum-card"><div class="sum-card-lbl">總航段</div>
+      <div class="sum-card-val">${state.legs.length} 段</div></div>`;
+
+  document.getElementById('result').style.display = 'block';
+  document.getElementById('result').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function backToEdit() {
+  document.getElementById('result').style.display = 'none';
+  document.getElementById('builder').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+/* ─── Duration ─── */
+function calcDuration() {
+  const d1=new Date(document.getElementById('dep-date').value);
+  const d2=new Date(document.getElementById('ret-date').value);
+  const el=document.getElementById('dur-lbl');
+  el.textContent=(!isNaN(d1)&&!isNaN(d2)&&d2>=d1)?`共 ${Math.round((d2-d1)/86400000)} 天`:'';
+}
+
+/* ─── Toast ─── */
+function showToast(msg, type='success') {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className=`show ${type}`;
+  t.id='toast'; clearTimeout(t._t);
+  t._t=setTimeout(()=>t.classList.remove('show'),3200);
+}
+
+/* ─── Utils ─── */
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+
+/* Return "城市（CODE）" display string for table */
+function legPlace(country, city, airport) {
+  let cityName = '';
+  if (country && GEO[country] && city && GEO[country].cities[city]) {
+    cityName = GEO[country].cities[city].label;
+  } else if (city) {
+    cityName = city; 
+  }
+  if (cityName && airport) return `${esc(cityName)}（${esc(airport)}）`;
+  if (cityName) return esc(cityName);
+  if (airport)  return esc(airport);
+  return '—';
+}
+/* ════════════════════════════════════════
+   EXCEL EXPORT
+   ════════════════════════════════════════ */
+function legPlaceText(country, city, airport) {
+  let n = '';
+  if (country && GEO[country] && city && GEO[country].cities[city])
+    n = GEO[country].cities[city].label;
+  else if (city) n = city;
+  if (n && airport) return `${n}（${airport}）`;
+  if (n) return n;
+  return airport || '—';
+}
+
+async function exportToExcel() {
+  if (!window.ExcelJS) { showToast('⚠ ExcelJS 尚未載入，請稍候再試', 'warn'); return; }
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'Trip Planner';
+  const ws = wb.addWorksheet('航班規劃表');
+
+  const depDate = document.getElementById('dep-date').value;
+  const retDate = document.getElementById('ret-date').value;
+
+  // Row 1 — title + trip period
+  ws.mergeCells('A1:D1');
+  ws.mergeCells('E1:H1');
+  const t = ws.getCell('A1');
+  t.value = '✈ 行程規劃表';
+  t.font = {bold:true, size:13, color:{argb:'FF1E3A8A'}, name:'Arial'};
+  t.alignment = {vertical:'middle'};
+  const p = ws.getCell('E1');
+  p.value = `行程期間: ${depDate||'—'} ～ ${retDate||'—'}`;
+  p.font = {size:10, color:{argb:'FF374151'}, name:'Arial'};
+  p.alignment = {vertical:'middle', horizontal:'right'};
+  ws.getRow(1).height = 28;
+
+  // Row 2 — headers
+  const HEADERS = ['航段','出發地','目的地','航班','起飛日期','起飛時間','降落日期','降落時間'];
+  const hRow = ws.addRow(HEADERS);
+  hRow.height = 26;
+  hRow.eachCell(cell => {
+    cell.fill = {type:'pattern', pattern:'solid', fgColor:{argb:'FF1E3A8A'}};
+    cell.font = {color:{argb:'FFFFFFFF'}, bold:true, size:10, name:'Arial'};
+    cell.alignment = {vertical:'middle', horizontal:'center', wrapText:false};
+    cell.border = {right:{style:'thin', color:{argb:'FF2563EB'}}, bottom:{style:'medium', color:{argb:'FF2563EB'}}};
+  });
+
+  // Rows 3+ — data
+  state.legs.forEach((leg, i) => {
+    const row = ws.addRow([
+      `LEG ${i+1}`,
+      legPlaceText(leg.fromCountry, leg.fromCity, leg.fromAirport),
+      legPlaceText(leg.toCountry,   leg.toCity,   leg.toAirport),
+      leg.flight  || '',
+      leg.depDate || '',
+      leg.depTime || '',
+      leg.arrDate || leg.depDate || '',
+      leg.arrTime || '',
+    ]);
+    row.height = 22;
+    const bg = i % 2 === 0 ? 'FFFFFFFF' : 'FFF9FAFB';
+    row.eachCell((cell, col) => {
+      cell.fill = {type:'pattern', pattern:'solid', fgColor:{argb:bg}};
+      cell.font = {size:10, name:'Arial', color:{argb:'FF111827'}};
+      cell.alignment = {vertical:'middle', horizontal: col === 1 ? 'center' : 'left'};
+      cell.border = {bottom:{style:'thin', color:{argb:'FFE5E7EB'}}};
+    });
+    // LEG badge cell
+    const lc = row.getCell(1);
+    lc.fill = {type:'pattern', pattern:'solid', fgColor:{argb:'FFDBEAFE'}};
+    lc.font = {bold:true, size:9, color:{argb:'FF1D4ED8'}, name:'Arial'};
+    lc.alignment = {vertical:'middle', horizontal:'center'};
+  });
+
+  // Hidden metadata row (for import round-trip)
+  ws.addRow([]);
+  const meta = ws.addRow(['TRIP_META', depDate, retDate,
+    `匯出: ${new Date().toLocaleDateString('zh-TW')}`, '', '', '', '']);
+  meta.eachCell(cell => {
+    cell.font = {size:7, color:{argb:'FFD1D5DB'}, name:'Arial'};
+  });
+
+  // Column widths + freeze
+  [9, 22, 22, 12, 13, 10, 13, 10].forEach((w, i) => { ws.getColumn(i+1).width = w; });
+  ws.views = [{state:'frozen', ySplit:2}];
+
+  // Build filename
+  const d = new Date();
+  const fname = `flight_plan_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.xlsx`;
+  const buf  = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+
+  // Prefer File System Access API (saves to chosen folder, defaults to same dir as HTML)
+  if (window.showSaveFilePicker) {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: fname,
+        types: [{ description: 'Excel 檔案', accept: {'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx']} }],
+      });
+      const writable = await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      showToast('✅ 已儲存 ' + handle.name, 'success');
+      return;
+    } catch(e) {
+      if (e.name === 'AbortError') return; 
+    }
+  }
+  // Fallback: regular download
+  const url = URL.createObjectURL(blob);
+  const a   = document.createElement('a');
+  a.href = url; a.download = fname;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('✅ 已匯出 Excel', 'success');
+}
+
+/* ════════════════════════════════════════
+   EXCEL IMPORT
+   ════════════════════════════════════════ */
+function buildAirportIndex() {
+  const idx = {};
+  Object.entries(GEO).forEach(([cc, country]) => {
+    Object.entries(country.cities).forEach(([ck, city]) => {
+      city.airports.forEach(ap => { idx[ap.c.toUpperCase()] = {country:cc, city:ck}; });
+    });
+  });
+  return idx;
+}
+
+function extractAirportCode(raw) {
+  if (!raw || raw === '—') return '';
+  const m = raw.match(/[（(]([A-Z]{3,4})[）)]\s*$/);
+  if (m) return m[1];
+  if (/^[A-Z]{3,4}$/.test(raw.trim())) return raw.trim();
+  return '';
+}
+
+function excelDateStr(val) {
+  if (!val) return '';
+  if (val instanceof Date) return val.toISOString().slice(0, 10);
+  const s = String(val).trim();
+  const m = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+  return m ? `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}` : s;
+}
+
+async function importFromExcel(inputEl) {
+  const file = inputEl.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('import-status');
+  statusEl.textContent = '⏳ 讀取中…';
+  try {
+    const buf = await file.arrayBuffer();
+    const wb  = new ExcelJS.Workbook();
+    await wb.xlsx.load(buf);
+    const ws  = wb.worksheets[0];
+    const airIdx = buildAirportIndex();
+    const newLegs = [];
+    let tripDep = '', tripRet = '', dataStarted = false;
+
+    ws.eachRow((row) => {
+      const v  = row.values; // 1-indexed
+      const c1 = String(v[1] || '').trim();
+      if (c1 === 'TRIP_META') {
+        tripDep = String(v[2] || '').trim();
+        tripRet = String(v[3] || '').trim();
+        return;
+      }
+      if (c1 === '航段') { dataStarted = true; return; }
+      if (!dataStarted || !c1.startsWith('LEG')) return;
+
+      const fromCode = extractAirportCode(String(v[2] || '').trim());
+      const toCode   = extractAirportCode(String(v[3] || '').trim());
+      const fromGeo  = (fromCode && airIdx[fromCode]) || {};
+      const toGeo    = (toCode   && airIdx[toCode])   || {};
+
+      newLegs.push({
+        id: uid(),
+        fromCountry: fromGeo.country || '', fromCity: fromGeo.city || '', fromAirport: fromCode,
+        toCountry:   toGeo.country   || '', toCity:   toGeo.city   || '', toAirport:   toCode,
+        flight:   String(v[4] || '').trim().toUpperCase(),
+        depDate:  excelDateStr(v[5]),
+        depTime:  String(v[6] || '').trim(),
+        arrDate:  excelDateStr(v[7]),
+        arrTime:  String(v[8] || '').trim(),
+        autoFilled: false,
+      });
+    });
+
+    if (!newLegs.length) { statusEl.textContent = '❌ 無有效資料'; return; }
+    state.legs = newLegs;
+    render();
+    if (tripDep) { const el = document.getElementById('dep-date'); if (el) { el.value = tripDep; onTripDepDate(); } }
+    if (tripRet) { const el = document.getElementById('ret-date'); if (el) { el.value = tripRet; calcDuration(); } }
+    statusEl.textContent = `✅ ${newLegs.length} 段`;
+    setTimeout(() => { statusEl.textContent = ''; }, 4000);
+    document.getElementById('builder').scrollIntoView({behavior:'smooth'});
+    showToast(`✅ 已匯入 ${newLegs.length} 段航程，可繼續編輯`, 'success');
+  } catch(e) {
+    console.error(e);
+    statusEl.textContent = '❌ 匯入失敗';
+    showToast('❌ 匯入失敗，請確認格式正確', 'warn');
+  }
+  inputEl.value = '';
+}
+
+/* ════════════════════════════════════════
+   SCHEDULE EXCEL IMPORT
+   ════════════════════════════════════════ */
+async function importFromScheduleExcel(inputEl) {
+  const file = inputEl.files[0]; if (!file) return;
+  const statusEl = document.getElementById('import-sched-status');
+  statusEl.textContent = '⏳ 讀取中…';
+  try {
+    const buf = await file.arrayBuffer();
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(buf);
+    const ws = wb.worksheets[0];
+    if (!ws) { statusEl.textContent = '❌ 無工作表'; return; }
+
+    const dates=[], dateLabels={}, locations={}, times=[], cells={}, merges=[];
+
+    /* ── Helper: column letter(s) → 1-based number ── */
+    function xlCol(s){ let n=0; for(let i=0;i<s.length;i++) n=n*26+(s.charCodeAt(i)-64); return n; }
+
+    /* ── Step 1: parse all merge ranges FIRST ── */
+    const parsedMergeRanges = [];
+    const rawMerges = (ws.model && ws.model.merges) ? ws.model.merges : [];
+    rawMerges.forEach(m => {
+      let top, left, bottom, right;
+      if (typeof m === 'string') {
+        const x = m.replace(/\$/g,'').match(/^([A-Z]+)(\d+):([A-Z]+)(\d+)$/i);
+        if (!x) return;
+        left=xlCol(x[1].toUpperCase()); top=parseInt(x[2]);
+        right=xlCol(x[3].toUpperCase()); bottom=parseInt(x[4]);
+      } else {
+        const o = m.model || m;
+        top=o.top; left=o.left; bottom=o.bottom; right=o.right;
+      }
+      if (top && left) parsedMergeRanges.push({top,left,bottom,right});
+    });
+
+    const slaveCells = new Set();
+    parsedMergeRanges.forEach(({top,left,bottom,right}) => {
+      for (let r=top; r<=bottom; r++)
+        for (let c=left; c<=right; c++)
+          if (!(r===top && c===left)) slaveCells.add(`${r}_${c}`);
+    });
+
+    let maxDataCol = 1;
+    ws.getRow(2).eachCell({includeEmpty:false}, (cell, cn) => { if (cn>maxDataCol) maxDataCol=cn; });
+
+    const _refYear = (() => {
+      const dv = document.getElementById('dep-date')?.value || '';
+      if (dv) return parseInt(dv.slice(0,4));
+      const firstLeg = state?.legs?.[0];
+      if (firstLeg?.depDate) return parseInt(firstLeg.depDate.slice(0,4));
+      return new Date().getFullYear();
+    })();
+    const _parseDateLabel = (label, prevMonth) => {
+      const m = String(label).match(/^(\d{1,2})\/(\d{1,2})/);
+      if (!m) return null;
+      const mo = parseInt(m[1]), dy = parseInt(m[2]);
+      let yr = _refYear;
+      if (prevMonth !== null && mo < prevMonth) yr++;
+      return `${yr}-${String(mo).padStart(2,'0')}-${String(dy).padStart(2,'0')}`;
+    };
+    let _prevMonth = null, _isoYear = _refYear;
+    for (let cn=2; cn<=maxDataCol; cn++) {
+      if (slaveCells.has(`2_${cn}`)) continue;
+      const val = String(ws.getRow(2).getCell(cn).value || '').trim();
+      if (!val) continue;
+      let key = null;
+      const isoGuess = _parseDateLabel(val, _prevMonth);
+      if (isoGuess) {
+        let candidate = isoGuess, dedup = 1;
+        while (dates.includes(candidate)) candidate = isoGuess + '_' + (dedup++);
+        key = candidate;
+        const mo = parseInt(val.match(/^(\d{1,2})\//)?.[1] || '0');
+        if (mo) _prevMonth = mo;
+      } else {
+        key = `col_${cn}`;
+      }
+      dates.push(key);
+      dateLabels[key] = val;
+    }
+    if (!dates.length) { statusEl.textContent = '❌ 無欄位資料'; return; }
+
+    dates.forEach((d, ci) => {
+      const cn = ci+2;
+      if (slaveCells.has(`3_${cn}`)) return;
+      locations[d] = String(ws.getRow(3).getCell(cn).value || '').trim();
+    });
+
+    let ri = 0;
+    const noteContent = {};
+    ws.eachRow((row, rowNum) => {
+      if (rowNum < 4) return;
+      const timeVal = String(row.getCell(1).value || '').trim();
+      if (!timeVal) return;
+      if (timeVal.replace(/[^\w]/g,'').toLowerCase() === 'note') {
+        dates.forEach((d, ci) => {
+          const cn = ci+2;
+          const val = String(row.getCell(cn).value || '').trim();
+          if (val) noteContent[String(ci)] = val;
+        });
+        return;
+      }
+      times.push(timeVal);
+      dates.forEach((d, ci) => {
+        const cn = ci+2;
+        if (slaveCells.has(`${rowNum}_${cn}`)) return; 
+        const val = String(row.getCell(cn).value || '').trim();
+        if (val) cells[`${ri},${ci}`] = val;
+      });
+      ri++;
+    });
+
+    parsedMergeRanges.forEach(({top,left,bottom,right}) => {
+      const mr1=top-4, mr2=bottom-4, mc1=left-2, mc2=right-2;
+      if (mr1<0 || mc1<0 || mr2>=times.length || mc2>=dates.length) return;
+      const content = cells[`${mr1},${mc1}`] || '';
+      for (let r=mr1; r<=mr2; r++)
+        for (let c=mc1; c<=mc2; c++)
+          delete cells[`${r},${c}`];
+      merges.push({r1:mr1, c1:mc1, r2:mr2, c2:mc2, content});
+    });
+
+    const rowTypes = times.map(t => /^\d{1,2}:\d{2}$/.test(t) ? 'time' : 'note');
+    schedState = {dates, dateLabels, times, rowTypes, locations, cells, merges, selected:[], selectedTimeRow:null, noteContent, bgColors:{}};
+    renderScheduleTable();
+
+    const sec = document.getElementById('schedule');
+    sec.style.display = 'block';
+    sec.scrollIntoView({behavior:'smooth', block:'start'});
+
+    statusEl.textContent = `✅ ${dates.length} 天`;
+    setTimeout(() => { statusEl.textContent = ''; }, 4000);
+    showToast(`✅ 已匯入行程計畫（${dates.length} 天 × ${times.length} 時段）`, 'success');
+  } catch(e) {
+    console.error(e);
+    statusEl.textContent = '❌ 匯入失敗';
+    showToast('❌ 匯入失敗，請確認為行程計畫格式', 'warn');
+  }
+  inputEl.value = '';
+}
+
+function fmtDate(d){
+  if(!d)return'';
+  const dt=new Date(d+'T12:00:00');
+  if(isNaN(dt))return d;
+  return dt.toLocaleDateString('zh-TW',{year:'numeric',month:'short',day:'numeric',weekday:'short'});
+}
+
+/* ════════════════════════════════════════
+   SCHEDULE — STATE & RENDERING
+   ════════════════════════════════════════ */
+let schedState = null;
+const SDAY = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+function initSchedState(dep, ret) {
+  const dates = [];
+  let cur = new Date(dep + 'T12:00:00');
+  const end = new Date(ret + 'T12:00:00');
+  while (cur <= end && dates.length < 32) {
+    dates.push(cur.toISOString().slice(0,10));
+    cur.setDate(cur.getDate()+1);
+  }
+  const dateLabels = {};
+  dates.forEach(d => {
+    const dt = new Date(d+'T12:00:00');
+    dateLabels[d] = `${dt.getMonth()+1}/${dt.getDate()} (${SDAY[dt.getDay()]})`;
+  });
+  const times = [];
+  const rowTypes = [];
+  for (let h=0; h<=23; h++) { times.push(`${String(h).padStart(2,'0')}:00`); rowTypes.push('time'); }
+  schedState = {dates, dateLabels, times, rowTypes, locations:{}, cells:{}, merges:[], selected:[], selectedTimeRow:null, noteContent:{}, bgColors:{}};
+}
+
+function sMergeOrigin(r,c){ return schedState.merges.find(m=>m.r1===r&&m.c1===c)||null; }
+function sMergeCovered(r,c){
+  return schedState.merges.some(m=>r>=m.r1&&r<=m.r2&&c>=m.c1&&c<=m.c2&&!(r===m.r1&&c===m.c1));
+}
+function sCellInMerge(r,c){
+  return schedState.merges.some(m=>r>=m.r1&&r<=m.r2&&c>=m.c1&&c<=m.c2);
+}
+
+function renderScheduleTable() {
+  const s = schedState;
+  if (!s.rowTypes) { s.rowTypes = s.times.map(t => /^\d{1,2}:\d{2}$/.test(t) ? 'time' : 'note'); }
+  if (!s.noteContent) s.noteContent = {};
+  let html = '<thead>';
+
+  /* Row 1 — date headers */
+  html += '<tr class="sched-hd-row">';
+  html += '<th class="sched-corner">⏱ 時間</th>';
+  s.dates.forEach((d, ci) => {
+    html += `<th class="sched-date-hd-cell"><div class="sched-date-hd-inner" contenteditable="true" `+
+      `onblur="onSDate(${ci},this)">${esc(s.dateLabels[d]||'')}</div></th>`;
+  });
+  html += `<th class="sched-add-col-th"><button class="sched-add-btn sched-add-col-btn" onclick="schedAddCol()">＋ 欄</button></th>`;
+  html += '</tr>';
+
+  /* Row 2 — location row */
+  html += '<tr class="sched-loc-row">';
+  html += '<th class="sched-loc-corner">📍 地點</th>';
+  s.dates.forEach((d, ci) => {
+    html += `<td class="sched-loc-cell"><div class="sched-loc-inner" contenteditable="true" `+
+      `onblur="onSLoc(${ci},this)">${esc(s.locations[d]||'')}</div></td>`;
+  });
+  html += '<td class="sched-add-col-loc"></td>';
+  html += '</tr></thead><tbody>';
+
+  /* Data rows */
+  s.times.forEach((t, ri) => {
+    const rowType = s.rowTypes[ri] || 'time';
+    const isNoteRow = rowType === 'note';
+    const isSelected = s.selectedTimeRow === ri;
+    const rowCls = [
+      isSelected ? 'sched-row-time-selected' : '',
+      isNoteRow ? 'sched-row-note' : ''
+    ].filter(Boolean).join(' ');
+    const dragAttrs = isNoteRow
+      ? `draggable="true" ondragstart="sDragStart(event,${ri})" ondragover="sDragOver(event,${ri})" ondrop="sDrop(event,${ri})" ondragleave="sDragLeave(event,${ri})"`
+      : '';
+    html += `<tr class="${rowCls}" data-ri="${ri}" ${dragAttrs}>`;
+
+    /* Time cell */
+    const circleActiveCls = isSelected ? ' t-active' : '';
+    if (isNoteRow) {
+      html += `<td class="sched-time sched-time-custom">` +
+        `<span class="sched-drag-handle">⠿⠿</span>` +
+        `<button class="sched-time-circle${circleActiveCls}" onclick="sSelectTimeRow(${ri})" title="選取/操作此列"></button>` +
+        `<div class="sched-time-inner" contenteditable="true" onblur="onSTime(${ri},this)">${esc(t)}</div>`;
+    } else {
+      html += `<td class="sched-time">` +
+        `<button class="sched-time-circle${circleActiveCls}" onclick="sSelectTimeRow(${ri})" title="選取/操作此列"></button>` +
+        `${esc(t)}`;
+    }
+    if (isSelected) {
+      html += `<div class="sched-time-toolbar">` +
+        `<button class="sched-time-tool-btn scht-add" onclick="sAddSlotDialog(${ri},'above')" title="在此列上方新增時段">▲＋</button>` +
+        `<button class="sched-time-tool-btn scht-add" onclick="sAddSlotDialog(${ri},'below')" title="在此列下方新增時段">▼＋</button>` +
+        `<button class="sched-time-tool-btn scht-del" onclick="sDeleteSlot(${ri})" title="刪除此列">🗑</button>` +
+        `</div>`;
+    }
+    html += '</td>';
+
+    /* Data cells */
+    s.dates.forEach((d, ci) => {
+      if (sMergeCovered(ri,ci)) return;
+      const mg = sMergeOrigin(ri,ci);
+      const cs = mg ? mg.c2-mg.c1+1 : 1;
+      const rs = mg ? mg.r2-mg.r1+1 : 1;
+      const content = mg ? (mg.content||'') : (s.cells[`${ri},${ci}`]||'');
+      const isSel = s.selected.some(x=>x.r===ri&&x.c===ci);
+      
+      const customBg = (s.bgColors && s.bgColors[`${ri},${ci}`]) ? `background-color: ${s.bgColors[`${ri},${ci}`]} !important;` : '';
+      
+      let cls = 'sched-data-cell' + (isSel?' sched-selected':'') + (mg?' sched-merged':'');
+      let attrs = ` class="${cls}"` + (cs>1?` colspan="${cs}"`:'')+
+        (rs>1?` rowspan="${rs}"`:'') + ` data-row="${ri}" data-col="${ci}"` + (customBg ? ` style="${customBg}"` : '');
+
+      html += `<td${attrs}><div class="sched-cell-inner" contenteditable="true" `+
+        `onblur="onSCell(${ri},${ci},this)">${esc(content)}</div>`;
+      if (mg) {
+        html += `<button class="sched-merge-circle sched-split-btn" onclick="sSplit(${ri},${ci})" title="拆分">✕</button>`;
+      } else {
+        html += `<button class="sched-merge-circle" onclick="sToggleSel(${ri},${ci})" title="選取"></button>`;
+      }
+      html += '</td>';
+    });
+    html += '</tr>';
+  });
+  html += '</tbody>';
+
+  /* Note footer row */
+  html += '<tfoot><tr class="sched-note-footer">';
+  html += '<td class="sched-time sched-note-time-cell">📝 Note</td>';
+  s.dates.forEach((d, ci) => {
+    const nc = s.noteContent[String(ci)] || '';
+    html += `<td class="sched-note-data-cell"><div class="sched-note-cell-inner" contenteditable="true" `+
+      `onblur="onSNote(${ci},this)">${esc(nc)}</div></td>`;
+  });
+  html += '<td class="sched-note-add-cell"></td>';
+  html += '</tr></tfoot>';
+
+  document.getElementById('sched-table').innerHTML = html;
+
+  /* Fix row-2 sticky top offset */
+  requestAnimationFrame(() => {
+    const hdTh = document.querySelector('.sched-table thead tr.sched-hd-row th');
+    if (hdTh) {
+      const h = hdTh.offsetHeight + 'px';
+      document.querySelectorAll('.sched-table thead tr.sched-loc-row td, .sched-table thead tr.sched-loc-row th')
+        .forEach(el => { el.style.top = h; });
+    }
+  });
+  updateSMergeBar();
+}
+
+/* ── Handlers ── */
+function onSDate(ci, el) {
+  const d = schedState.dates[ci];
+  if (d!=null) schedState.dateLabels[d] = el.innerText||el.textContent||'';
+}
+function onSLoc(ci, el) {
+  const d = schedState.dates[ci];
+  if (d!=null) schedState.locations[d] = el.innerText||el.textContent||'';
+}
+function onSCell(ri, ci, el) {
+  const mg = sMergeOrigin(ri,ci);
+  const v = el.innerText||el.textContent||'';
+  if (mg) mg.content = v; else schedState.cells[`${ri},${ci}`] = v;
+}
+function onSTime(ri, el) {
+  schedState.times[ri] = el.innerText||el.textContent||'';
+}
+
+/* ── Selection & Merge ── */
+function sToggleSel(r, c) {
+  if (sCellInMerge(r,c)) return;
+  const s = schedState;
+  const idx = s.selected.findIndex(x=>x.r===r&&x.c===c);
+  if (idx>=0) s.selected.splice(idx,1); else s.selected.push({r,c});
+  const td = document.querySelector(`.sched-data-cell[data-row="${r}"][data-col="${c}"]`);
+  if (td) {
+    td.classList.toggle('sched-selected', idx<0);
+    const btn = td.querySelector('.sched-merge-circle');
+    if (btn) btn.style.background = idx<0 ? '#fbbf24' : '';
+  }
+  updateSMergeBar();
+}
+
+function updateSMergeBar() {
+  const bar = document.getElementById('sched-merge-bar');
+  if (!bar) return;
+  const n = schedState ? schedState.selected.length : 0;
+  
+  if (n > 0) {
+    let html = `<span>已選取 ${n} 格</span>`;
+    
+    if (n >= 2) {
+      html += `<button class="sched-merge-confirm-btn" onclick="sMerge()">⊞ 合併選取</button>`;
+    }
+
+    html += `
+      <div class="color-palette">
+        <button class="sched-color-btn" style="background:#fecaca" onclick="sApplyColor('#fecaca')" title="紅色"></button>
+        <button class="sched-color-btn" style="background:#bbf7d0" onclick="sApplyColor('#bbf7d0')" title="綠色"></button>
+        <button class="sched-color-btn" style="background:#bfdbfe" onclick="sApplyColor('#bfdbfe')" title="藍色"></button>
+        <button class="sched-color-btn" style="background:#fef08a" onclick="sApplyColor('#fef08a')" title="黃色"></button>
+        <button class="sched-color-btn" style="background:#e9d5ff" onclick="sApplyColor('#e9d5ff')" title="紫色"></button>
+        <button class="sched-color-btn c-clear" onclick="sApplyColor('')" title="清除顏色"></button>
+      </div>
+      <button class="sched-cancel-sel-btn" style="margin-left:5px" onclick="sCancelSel()">✕ 取消</button>
+    `;
+    
+    bar.innerHTML = html;
+    bar.classList.add('show');
+  } else {
+    bar.classList.remove('show');
+  }
+}
+
+function sApplyColor(colorHex) {
+  const s = schedState;
+  if (!s || s.selected.length === 0) return;
+  if (!s.bgColors) s.bgColors = {};
+
+  s.selected.forEach(pos => {
+    if (colorHex) {
+      s.bgColors[`${pos.r},${pos.c}`] = colorHex;
+    } else {
+      delete s.bgColors[`${pos.r},${pos.c}`];
+    }
+  });
+  
+  sCancelSel(); 
+  renderScheduleTable();
+}
+
+function sMerge() {
+  const s = schedState;
+  if (s.selected.length < 2) return;
+  const rows = s.selected.map(x=>x.r), cols = s.selected.map(x=>x.c);
+  const r1=Math.min(...rows),r2=Math.max(...rows),c1=Math.min(...cols),c2=Math.max(...cols);
+  if (s.selected.length !== (r2-r1+1)*(c2-c1+1)) {
+    showToast('⚠ 選取範圍必須為矩形','warn'); return;
+  }
+  if (s.merges.some(m=>!(m.r2<r1||m.r1>r2||m.c2<c1||m.c1>c2))) {
+    showToast('⚠ 與現有合併儲存格重疊','warn'); return;
+  }
+  const content = s.cells[`${r1},${c1}`]||'';
+  for (let r=r1;r<=r2;r++) for (let c=c1;c<=c2;c++) delete s.cells[`${r},${c}`];
+  s.merges.push({r1,c1,r2,c2,content});
+  s.selected = [];
+  renderScheduleTable();
+  showToast('✅ 已合併','success');
+}
+
+function sSplit(r, c) {
+  const s = schedState;
+  const idx = s.merges.findIndex(m=>m.r1===r&&m.c1===c);
+  if (idx<0) return;
+  s.cells[`${r},${c}`] = s.merges[idx].content||'';
+  s.merges.splice(idx,1);
+  renderScheduleTable();
+  showToast('✅ 已拆分','success');
+}
+
+function sCancelSel() {
+  schedState.selected = [];
+  document.querySelectorAll('.sched-data-cell.sched-selected').forEach(el=>{
+    el.classList.remove('sched-selected');
+    const btn=el.querySelector('.sched-merge-circle'); if (btn) btn.style.background='';
+  });
+  updateSMergeBar();
+}
+
+/* ── Time row selection & add/delete ── */
+function sSelectTimeRow(ri) {
+  const s = schedState;
+  s.selectedTimeRow = (s.selectedTimeRow === ri) ? null : ri;
+  renderScheduleTable();
+}
+
+function sAddSlotDialog(ri, position) {
+  const val = prompt('輸入時段 (如 10:30) 或標籤 (如 Hotel):');
+  if (val === null) return;
+  const trimmed = val.trim();
+  if (!trimmed) return;
+  const s = schedState;
+  const isTimeFormat = /^\d{1,2}:\d{2}$/.test(trimmed);
+  const type = isTimeFormat ? 'time' : 'note';
+  const label = isTimeFormat ? trimmed.padStart(5, '0').replace(/^(\d):/, '0$1:') : trimmed;
+  const normLabel = isTimeFormat ? label.replace(/^(\d{1}):/, '0$1:') : label;
+
+  let insertIdx;
+  if (isTimeFormat) {
+    insertIdx = sTimeSortedIdx(normLabel);
+  } else {
+    insertIdx = position === 'above' ? ri : ri + 1;
+  }
+  sInsertRow(insertIdx, normLabel, type);
+  s.selectedTimeRow = null;
+  renderScheduleTable();
+  showToast(`✅ 已新增「${normLabel}」${type==='time'?'時段':'標籤'}`, 'success');
+}
+
+function sTimeSortedIdx(timeStr) {
+  const s = schedState;
+  const [h, m] = timeStr.split(':').map(Number);
+  const val = h * 60 + m;
+  for (let i = 0; i < s.times.length; i++) {
+    if ((s.rowTypes[i] || 'time') !== 'time') continue;
+    const parts = s.times[i].split(':').map(Number);
+    if (parts[0]*60+parts[1] >= val) return i;
+  }
+  return s.times.length;
+}
+
+function sInsertRow(insertIdx, label, type) {
+  const s = schedState;
+  const newCells = {};
+  Object.keys(s.cells).forEach(k => {
+    const [ri, ci] = k.split(',').map(Number);
+    newCells[ri >= insertIdx ? `${ri+1},${ci}` : k] = s.cells[k];
+  });
+  s.cells = newCells;
+  s.merges.forEach(mg => {
+    if (mg.r1 >= insertIdx) { mg.r1++; mg.r2++; }
+    else if (mg.r2 >= insertIdx) { mg.r2++; }
+  });
+  s.selected = s.selected.map(x => ({...x, r: x.r >= insertIdx ? x.r+1 : x.r}));
+  s.times.splice(insertIdx, 0, label);
+  if (!s.rowTypes) s.rowTypes = s.times.map(() => 'time');
+  s.rowTypes.splice(insertIdx, 0, type);
+}
+
+function sDeleteSlot(ri) {
+  const s = schedState;
+  if (s.times.length <= 1) { showToast('⚠ 至少保留一個時段','warn'); return; }
+  const label = s.times[ri];
+  const newCells = {};
+  Object.keys(s.cells).forEach(k => {
+    const [rowIdx, ci] = k.split(',').map(Number);
+    if (rowIdx === ri) return;
+    newCells[rowIdx > ri ? `${rowIdx-1},${ci}` : k] = s.cells[k];
+  });
+  s.cells = newCells;
+  s.merges = s.merges
+    .filter(mg => !(mg.r1 <= ri && mg.r2 >= ri))
+    .map(mg => {
+      if (mg.r1 > ri) return {...mg, r1:mg.r1-1, r2:mg.r2-1};
+      if (mg.r2 > ri) return {...mg, r2:mg.r2-1};
+      return mg;
+    });
+  s.selected = s.selected.filter(x=>x.r!==ri).map(x=>({...x, r:x.r>ri?x.r-1:x.r}));
+  s.times.splice(ri, 1);
+  if (s.rowTypes) s.rowTypes.splice(ri, 1);
+  s.selectedTimeRow = null;
+  renderScheduleTable();
+  showToast(`✅ 已刪除「${label}」`, 'success');
+}
+
+/* ── Note row ── */
+function onSNote(ci, el) {
+  const s = schedState;
+  if (!s.noteContent) s.noteContent = {};
+  s.noteContent[String(ci)] = el.innerText || el.textContent || '';
+}
+
+/* ── Drag & Drop for note rows ── */
+let _dragSrcRi = null;
+
+function sDragStart(event, ri) {
+  _dragSrcRi = ri;
+  event.dataTransfer.effectAllowed = 'move';
+  setTimeout(() => {
+    const tr = document.querySelector(`.sched-table tbody tr[data-ri="${ri}"]`);
+    if (tr) tr.classList.add('dragging-ghost');
+  }, 0);
+}
+
+function sDragOver(event, ri) {
+  if (_dragSrcRi === null || _dragSrcRi === ri) return;
+  event.preventDefault();
+  event.dataTransfer.dropEffect = 'move';
+  const tr = document.querySelector(`.sched-table tbody tr[data-ri="${ri}"]`);
+  if (!tr) return;
+  const rect = tr.getBoundingClientRect();
+  const midY = rect.top + rect.height / 2;
+  tr.classList.remove('drag-over-top','drag-over-bottom');
+  tr.classList.add(event.clientY < midY ? 'drag-over-top' : 'drag-over-bottom');
+}
+
+function sDragLeave(event, ri) {
+  const tr = document.querySelector(`.sched-table tbody tr[data-ri="${ri}"]`);
+  if (tr) tr.classList.remove('drag-over-top','drag-over-bottom');
+}
+
+function sDrop(event, targetRi) {
+  event.preventDefault();
+  const s = schedState;
+  const srcRi = _dragSrcRi;
+  _dragSrcRi = null;
+  if (srcRi === null || srcRi === targetRi) { renderScheduleTable(); return; }
+  const tr = document.querySelector(`.sched-table tbody tr[data-ri="${targetRi}"]`);
+  let insertBefore = true;
+  if (tr) {
+    const rect = tr.getBoundingClientRect();
+    insertBefore = event.clientY < rect.top + rect.height / 2;
+  }
+  let dstRi = insertBefore ? targetRi : targetRi + 1;
+  if (dstRi > srcRi) dstRi--; 
+  sMoveRow(srcRi, dstRi);
+  s.selectedTimeRow = null;
+  renderScheduleTable();
+}
+
+function sMoveRow(srcRi, dstRi) {
+  if (srcRi === dstRi) return;
+  const s = schedState;
+  const srcCells = {};
+  const newCells = {};
+  Object.keys(s.cells).forEach(k => {
+    const [ri, ci] = k.split(',').map(Number);
+    if (ri === srcRi) { srcCells[ci] = s.cells[k]; return; }
+    let nr = ri;
+    if (srcRi < dstRi) { if (ri > srcRi && ri <= dstRi) nr = ri - 1; }
+    else { if (ri >= dstRi && ri < srcRi) nr = ri + 1; }
+    newCells[`${nr},${ci}`] = s.cells[k];
+  });
+  Object.keys(srcCells).forEach(ci => { newCells[`${dstRi},${ci}`] = srcCells[ci]; });
+  s.cells = newCells;
+  s.merges = [];
+  s.selected = [];
+  const [mt] = s.times.splice(srcRi, 1);
+  const [mrt] = s.rowTypes.splice(srcRi, 1);
+  s.times.splice(dstRi, 0, mt);
+  s.rowTypes.splice(dstRi, 0, mrt);
+}
+
+function schedAddCol() {
+  const s = schedState;
+  const lastD = s.dates[s.dates.length-1];
+  let nd = new Date().toISOString().slice(0,10);
+  if (lastD) {
+    const base = lastD.split('_')[0];
+    const d = new Date(base+'T12:00:00');
+    if (!isNaN(d)) { d.setDate(d.getDate()+1); nd=d.toISOString().slice(0,10); }
+  }
+  let key=nd, n=1;
+  while (s.dates.includes(key)) key=nd+'_'+(n++);
+  const dt=new Date(nd+'T12:00:00');
+  s.dates.push(key);
+  s.dateLabels[key]=isNaN(dt)?'新增欄':`${dt.getMonth()+1}/${dt.getDate()} (${SDAY[dt.getDay()]})`;
+  renderScheduleTable();
+}
+
+/* ════════════════════════════════════════
+   AUTO-FILL FLIGHTS INTO SCHEDULE TABLE
+   ════════════════════════════════════════ */
+function _findDateColIdx(isoDate) {
+  const s = schedState;
+  if (!isoDate) return -1;
+  const direct = s.dates.indexOf(isoDate);
+  if (direct >= 0) return direct;
+  const parts = isoDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!parts) return -1;
+  const mo = parseInt(parts[2]), dy = parseInt(parts[3]);
+  for (let ci = 0; ci < s.dates.length; ci++) {
+    const label = s.dateLabels[s.dates[ci]] || '';
+    const lm = label.match(/^(\d{1,2})\/(\d{1,2})/);
+    if (lm && parseInt(lm[1]) === mo && parseInt(lm[2]) === dy) return ci;
+  }
+  return -1;
+}
+
+function autoFillFlightsToSchedule(silent) {
+  const s = schedState;
+  if (!s) { if (!silent) showToast('⚠ 請先產生行程時間表', 'warn'); return; }
+  if (!state || !state.legs || !state.legs.length) { if (!silent) showToast('⚠ 請先填入航段資料', 'warn'); return; }
+
+  let filled = 0;
+
+  state.legs.forEach(leg => {
+    const fn   = (leg.flight      || '').trim().toUpperCase();
+    const from = (leg.fromAirport || '').trim().toUpperCase();
+    const to   = (leg.toAirport   || '').trim().toUpperCase();
+    if (!fn && !from && !to) return;
+
+    const depDate = leg.depDate || '';
+    const depTime = _normTime(leg.depTime || '');
+    if (depDate && depTime) {
+      const ci = _findDateColIdx(depDate);
+      if (ci >= 0) {
+        const ri = _ensureTimeRow(depTime);
+        _setSchedCell(ri, ci, _buildDepLabel(fn, from, to, depTime));
+        filled++;
+      }
+    }
+
+    const arrDate = leg.arrDate || leg.depDate || '';
+    const arrTime = _normTime(leg.arrTime || '');
+    if (arrDate && arrTime) {
+      const ci = _findDateColIdx(arrDate);
+      if (ci >= 0) {
+        const ri = _ensureTimeRow(arrTime);
+        _setSchedCell(ri, ci, _buildArrLabel(fn, from, to, arrTime));
+        filled++;
+      }
+    }
+  });
+
+  if (!silent) {
+    renderScheduleTable();
+    showToast(filled > 0
+      ? `✅ 已填入 ${filled} 筆航班資訊`
+      : '⚠ 無可填入的航班（請確認航段已填入日期與時間）',
+      filled > 0 ? 'success' : 'warn');
+  }
+}
+
+function _normTime(t) {
+  if (!t) return '';
+  const m = String(t).trim().match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return '';
+  return `${String(m[1]).padStart(2,'0')}:${m[2]}`;
+}
+
+function _ensureTimeRow(timeStr) {
+  const s = schedState;
+  const existing = s.times.indexOf(timeStr);
+  if (existing >= 0) return existing;
+  const insertIdx = sTimeSortedIdx(timeStr);
+  sInsertRow(insertIdx, timeStr, 'time');
+  return insertIdx;
+}
+
+function _setSchedCell(ri, ci, label) {
+  const s = schedState;
+  const key = `${ri},${ci}`;
+  const existing = (s.cells[key] || '').trim();
+  s.cells[key] = existing ? `${existing}\n${label}` : label;
+}
+
+function _buildDepLabel(fn, from, to, time) {
+  const route = (from && to) ? `${from}→${to}` : (from || to || '');
+  if (fn && route) return `✈ ${fn} ${route}`;
+  if (fn)    return `✈ ${fn} 起飛`;
+  if (route) return `✈ ${route}`;
+  return `✈ 起飛 ${time}`;
+}
+
+function _buildArrLabel(fn, from, to, time) {
+  const dest = to || from || '';
+  if (fn && dest) return `🛬 ${fn} 抵 ${dest}`;
+  if (fn)   return `🛬 ${fn} 降落`;
+  if (dest) return `🛬 抵 ${dest}`;
+  return `🛬 降落 ${time}`;
+}
+
+function generateSchedule() {
+  const depEl=document.getElementById('dep-date'), retEl=document.getElementById('ret-date');
+  if (!depEl.value&&state.legs[0]?.depDate){depEl.value=state.legs[0].depDate;onTripDepDate();}
+  if (!retEl.value){
+    const ll=state.legs[state.legs.length-1];
+    const ld=ll.arrDate||ll.depDate; if(ld){retEl.value=ld;calcDuration();}
+  }
+  const dep=depEl.value, ret=retEl.value;
+  if (!dep){showToast('⚠ 請先填入出發日期','warn');return;}
+  if (!ret){showToast('⚠ 請先填入回程日期','warn');return;}
+  if (ret<dep){showToast('⚠ 回程日期不可早於出發日期','warn');return;}
+  if (schedState&&schedState.dates[0]===dep&&
+      schedState.dates.filter(d=>!d.includes('_')).slice(-1)[0]===ret) {
+    document.getElementById('schedule').style.display='block';
+    document.getElementById('schedule').scrollIntoView({behavior:'smooth',block:'start'});
+    return;
+  }
+  initSchedState(dep,ret);
+  autoFillFlightsToSchedule(true); 
+  renderScheduleTable();
+  document.getElementById('schedule').style.display='block';
+  document.getElementById('schedule').scrollIntoView({behavior:'smooth',block:'start'});
+  showToast(`✅ 已產生 ${schedState.dates.length} 天行程表`, 'success');
+}
+
+function clearSchedule() {
+  document.getElementById('schedule').style.display='none';
+}
+
+async function exportScheduleExcel() {
+  if (!window.ExcelJS){showToast('⚠ ExcelJS 尚未載入','warn');return;}
+  const s = schedState; if (!s) return;
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet('行程時間表');
+  const CO=2, RO=4; 
+
+  ws.mergeCells(1,1,1,s.dates.length+1);
+  const tC=ws.getCell(1,1);
+  tC.value='📅 行程時間表';
+  tC.font={bold:true,size:13,color:{argb:'FF1E3A8A'},name:'Arial'};
+  tC.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFE0E7FF'}};
+  tC.alignment={vertical:'middle'};
+  ws.getRow(1).height=30;
+
+  const hC=ws.getCell(2,1);
+  hC.value='⏱ 時間';
+  hC.font={bold:true,size:9,color:{argb:'FFFFFFFF'},name:'Arial'};
+  hC.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1E3A8A'}};
+  hC.alignment={vertical:'middle',horizontal:'center'};
+  hC.border={right:{style:'medium',color:{argb:'FFC7D2FE'}},bottom:{style:'thin',color:{argb:'FFE0E7FF'}}};
+  s.dates.forEach((d,ci)=>{
+    const c=ws.getCell(2,ci+CO);
+    c.value=s.dateLabels[d]||d;
+    c.font={bold:true,size:10,color:{argb:'FFFFFFFF'},name:'Arial'};
+    c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF6D28D9'}};
+    c.alignment={vertical:'middle',horizontal:'center'};
+    c.border={right:{style:'thin',color:{argb:'FFEDE9FE'}},bottom:{style:'thin',color:{argb:'FFE0E7FF'}}};
+  });
+  ws.getRow(2).height=30;
+
+  const lC=ws.getCell(3,1);
+  lC.value='📍 地點';
+  lC.font={bold:true,size:9,color:{argb:'FF1D4ED8'},name:'Arial'};
+  lC.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFDBEAFE'}};
+  lC.alignment={vertical:'middle',horizontal:'center'};
+  lC.border={right:{style:'medium',color:{argb:'FF93C5FD'}},bottom:{style:'medium',color:{argb:'FFA78BFA'}}};
+  s.dates.forEach((d,ci)=>{
+    const c=ws.getCell(3,ci+CO);
+    c.value=s.locations[d]||'';
+    c.font={bold:true,size:10,color:{argb:'FF6D28D9'},name:'Arial'};
+    c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFEDE9FE'}};
+    c.alignment={vertical:'middle',horizontal:'center'};
+    c.border={right:{style:'thin',color:{argb:'FFC4B5FD'}},bottom:{style:'medium',color:{argb:'FFA78BFA'}}};
+  });
+  ws.getRow(3).height=26;
+
+  s.times.forEach((t,ri)=>{
+    const rn=ri+RO;
+    const isNoteR = s.rowTypes && s.rowTypes[ri] === 'note';
+    ws.getRow(rn).height=22;
+    const tc=ws.getCell(rn,1);
+    tc.value=t;
+    tc.font={bold:true,size:9,color:{argb: isNoteR ? 'FFD97706' : 'FF1D4ED8'},name:'Arial'};
+    tc.fill={type:'pattern',pattern:'solid',fgColor:{argb: isNoteR ? 'FFFEF3C7' : (ri%2===0?'FFDBEAFE':'FFE0F2FE')}};
+    tc.alignment={vertical:'middle',horizontal:'center'};
+    tc.border={right:{style:'medium',color:{argb:'FF93C5FD'}},bottom:{style:'thin',color:{argb:'FFE5E7EB'}}};
+    s.dates.forEach((d,ci)=>{
+      if (sMergeCovered(ri,ci)) return;
+      const mg=sMergeOrigin(ri,ci);
+      const cn=ci+CO;
+      const content=mg?(mg.content||''):(s.cells[`${ri},${ci}`]||'');
+      const c=ws.getCell(rn,cn);
+      c.value=content;
+      c.font={size:10,name:'Arial',color:{argb:'FF111827'}};
+      c.alignment={vertical:'top',horizontal:'left',wrapText:true};
+      
+      let argbBg = ri%2===0 ? 'FFFFFFFF' : 'FFF9FAFB';
+      if (s.bgColors && s.bgColors[`${ri},${ci}`]) {
+          argbBg = 'FF' + s.bgColors[`${ri},${ci}`].replace('#', '').toUpperCase();
+      }
+      c.fill={type:'pattern',pattern:'solid',fgColor:{argb: argbBg}};
+
+      c.border={right:{style:'thin',color:{argb:'FFE5E7EB'}},bottom:{style:'thin',color:{argb:'FFE5E7EB'}}};
+      if (mg) { try{ws.mergeCells(rn,cn,mg.r2+RO,mg.c2+CO);}catch(e){} }
+    });
+  });
+
+  const noteRn = s.times.length + RO;
+  ws.getRow(noteRn).height=22;
+  const ntc = ws.getCell(noteRn,1);
+  ntc.value='📝 Note';
+  ntc.font={bold:true,size:9,color:{argb:'FF065F46'},name:'Arial'};
+  ntc.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFD1FAE5'}};
+  ntc.alignment={vertical:'middle',horizontal:'center'};
+  ntc.border={top:{style:'medium',color:{argb:'FF6EE7B7'}},right:{style:'medium',color:{argb:'FF86EFAC'}}};
+  s.dates.forEach((d,ci)=>{
+    const nc = (s.noteContent&&s.noteContent[String(ci)]) || '';
+    const c = ws.getCell(noteRn,ci+CO);
+    c.value=nc;
+    c.font={size:10,name:'Arial',color:{argb:'FF374151'}};
+    c.alignment={vertical:'top',horizontal:'left',wrapText:true};
+    c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF0FDF4'}};
+    c.border={top:{style:'medium',color:{argb:'FF6EE7B7'}},right:{style:'thin',color:{argb:'FFBBF7D0'}}};
+  });
+
+  ws.views=[{state:'frozen',xSplit:1,ySplit:3}];
+  ws.getColumn(1).width=12;
+  s.dates.forEach((d,ci)=>{ws.getColumn(ci+CO).width=20;});
+
+  const fname=`schedule_${new Date().toISOString().slice(0,10).replace(/-/g,'')}.xlsx`;
+  const buf=await wb.xlsx.writeBuffer();
+  const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  if (window.showSaveFilePicker) {
+    try {
+      const h2=await window.showSaveFilePicker({
+        suggestedName:fname,
+        types:[{description:'Excel 檔案',accept:{'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':['.xlsx']}}]
+      });
+      const w=await h2.createWritable(); await w.write(blob); await w.close();
+      showToast('✅ 已儲存 '+h2.name,'success'); return;
+    } catch(e){if(e.name==='AbortError')return;}
+  }
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=fname;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('✅ 已匯出行程時間表','success');
+}
+
+/* ─── Init ─── */
+/* ─── 數字時鐘邏輯 ─── */
+const TZ_MAP = {
+  TW: 'Asia/Taipei', US: 'America/Los_Angeles', JP: 'Asia/Tokyo', KR: 'Asia/Seoul',
+  SG: 'Asia/Singapore', HK: 'Asia/Hong_Kong', TH: 'Asia/Bangkok', GB: 'Europe/London',
+  FR: 'Europe/Paris', DE: 'Europe/Berlin', IT: 'Europe/Rome', ES: 'Europe/Madrid',
+  AT: 'Europe/Vienna', CH: 'Europe/Zurich', BE: 'Europe/Brussels', PT: 'Europe/Lisbon',
+  NL: 'Europe/Amsterdam', SE: 'Europe/Stockholm', DK: 'Europe/Copenhagen', NO: 'Europe/Oslo',
+  FI: 'Europe/Helsinki', CZ: 'Europe/Prague', HU: 'Europe/Budapest', PL: 'Europe/Warsaw',
+  GR: 'Europe/Athens', TR: 'Europe/Istanbul', AU: 'Australia/Sydney', NZ: 'Pacific/Auckland',
+  CA: 'America/Toronto', CN: 'Asia/Shanghai', AE: 'Asia/Dubai', SA: 'Asia/Riyadh',
+  MY: 'Asia/Kuala_Lumpur', PH: 'Asia/Manila', ID: 'Asia/Jakarta', VN: 'Asia/Ho_Chi_Minh',
+  KH: 'Asia/Phnom_Penh', MV: 'Indian/Maldives', IN: 'Asia/Kolkata', QA: 'Asia/Qatar', ZA: 'Africa/Johannesburg'
+};
+
+function initClocks() {
+  const sel1 = document.getElementById('clock-1-tz');
+  const sel2 = document.getElementById('clock-2-tz');
+  if (!sel1 || !sel2) return;
+  const localTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const sortedCountries = Object.entries(GEO).sort((a, b) => a[1].label.localeCompare(b[1].label, 'zh-TW'));
+  const optionsHTML = sortedCountries.map(([code, data]) => `<option value="${TZ_MAP[code] || 'UTC'}">${data.label}</option>`).join('');
+  sel1.innerHTML = optionsHTML;
+  sel2.innerHTML = optionsHTML;
+  for (let code in TZ_MAP) { if (TZ_MAP[code] === localTZ) { sel1.value = localTZ; break; } }
+  if (sel2.options.length > 1) sel2.selectedIndex = 1;
+  setInterval(updateClockDisplay, 1000);
+  updateClockDisplay();
+}
+
+function updateClockDisplay() {
+  const update = (id) => {
+    const elTz = document.getElementById(`clock-${id}-tz`);
+    if (!elTz) return;
+    const tz = elTz.value;
+    const now = new Date();
+    try {
+      document.getElementById(`clock-${id}-time`).textContent = now.toLocaleTimeString('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      document.getElementById(`clock-${id}-date`).textContent = now.toLocaleDateString('zh-TW', { timeZone: tz, month: 'short', day: 'numeric', weekday: 'short' });
+    } catch(e) {}
+  };
+  update(1); update(2);
+}
+// 啟動時鐘
+initClocks();
+render();
+</script>
+</body>
+</html>
