@@ -307,15 +307,119 @@ tbody tr:last-child td{border-bottom:none}
   color:white;border:none;border-radius:9px;padding:11px;font-size:.88rem;font-weight:800;cursor:pointer;transition:opacity .15s}
 .modal-apply-btn:hover{opacity:.9}
 
-@media(max-width:640px){
-  .ph{padding:20px 16px}.main{padding:20px 12px 40px}.trip-dates{gap:14px}
-  .endpoints-row{grid-template-columns:1fr;gap:0}
-  .ep-arrow{padding-top:2px;padding-bottom:2px;font-size:1rem}
-  .flight-dt-row{flex-direction:column}
-  .flight-dep-grp,.flight-arr-grp{flex-wrap:wrap}
-  .fld.fld-flight,.fld.fld-date,.fld.fld-time{flex:1 1 100%}
-  .fdt-sep{display:none}
-  .modal{border-radius:14px}
+@media(max-width:640px) {
+/* ─── 航班總表 RWD 改為卡片式排列 ─── */
+  #result table, 
+  #result thead, 
+  #result tbody, 
+  #result th, 
+  #result td, 
+  #result tr { 
+    display: block; /* 讓所有表格元素變為區塊，方便堆疊 */
+  }
+
+  /* 隱藏原本的表頭標題（因為卡片模式不需要橫向標題） */
+  #result thead tr { 
+    position: absolute; 
+    top: -9999px; 
+    left: -9999px; 
+  }
+
+  /* 讓每一行變成一張獨立卡片 */
+  #result tr { 
+    border: 2px solid var(--blue-l); 
+    margin-bottom: 12px; 
+    border-radius: 10px; 
+    background: #fff;
+    overflow: hidden;
+    box-shadow: var(--sh);
+  }
+
+  /* 調整單格樣式與標籤顯示 */
+  #result td { 
+    border: none; 
+    position: relative; 
+    padding: 8px 10px 8px 45% !important; /* 為左側標籤留出 45% 空間 */
+    text-align: left !important; 
+    font-size: 0.85rem;
+    border-bottom: 1px solid var(--g100);
+    min-height: 38px;
+    display: flex;
+    align-items: center;
+  }
+
+  #result td:last-child { border-bottom: none; }
+
+  /* 使用偽元素自動產生手機版標籤（不需修改 JS） */
+  #result td:before { 
+    position: absolute; 
+    left: 12px; 
+    width: 40%; 
+    font-weight: 800; 
+    color: var(--blue-d);
+    font-size: 0.75rem;
+    content: attr(data-label); /* 若 JS 有 data-label 可自動捉取 */
+  }
+
+  /* 針對你目前 HTML 結構的手動標籤（對應 8 個欄位） */
+  #result td:nth-of-type(1):before { content: "📍 航段"; }
+  #result td:nth-of-type(2):before { content: "🛫 出發地"; }
+  #result td:nth-of-type(3):before { content: "🛬 目的地"; }
+  #result td:nth-of-type(4):before { content: "✈ 航班"; }
+  #result td:nth-of-type(5):before { content: "📅 起飛日期"; }
+  #result td:nth-of-type(6):before { content: "⏱ 起飛時間"; }
+  #result td:nth-of-type(7):before { content: "📅 降落日期"; }
+  #result td:nth-of-type(8):before { content: "⏱ 降落時間"; }
+
+  /* 第一欄的 LEG 標章特殊處理 */
+  .td-leg { margin: 0; }
+
+  /* 1. Header 與 品牌標籤微調 */
+  .ph { padding: 20px 10px; }
+  .ph h1 { font-size: 1.3rem; }
+  .studio-tag { top: 5px; right: 10px; font-size: 1.1rem; }
+  
+  /* 2. 日期方框與時鐘：由橫向改為垂直堆疊 */
+  .trip-dates { 
+    flex-direction: column; 
+    gap: 12px; 
+    width: 95%; 
+    margin: 18px auto 0; 
+    padding: 15px;
+  }
+  .date-grp { width: 100%; }
+  .date-grp input[type=date] { width: 100%; min-width: unset; }
+  
+  /* 時鐘在手機版取消左邊框，改為上方邊框 */
+  .clock-grp { 
+    border-left: none; 
+    border-top: 1px solid rgba(255,255,255,0.2); 
+    padding-left: 0; 
+    padding-top: 12px; 
+    width: 100%; 
+  }
+
+  /* 3. 航段卡片：出發地與目的地改為上下排列 */
+  .endpoints-row { grid-template-columns: 1fr; gap: 0; }
+  .ep-arrow { 
+    padding: 5px 0; 
+    font-size: 1.2rem; 
+    transform: rotate(90deg); /* 箭頭轉向向下 */
+  }
+  
+  /* 4. 航班資訊與時間：全部撐滿寬度 */
+  .flight-dt-row { flex-direction: column; gap: 12px; }
+  .flight-dep-grp, .flight-arr-grp { 
+    flex-direction: column; 
+    width: 100%; 
+    gap: 10px; 
+  }
+  .fld { width: 100% !important; flex: unset !important; }
+  .fdt-sep { display: none; } /* 手機版隱藏斜線分隔符 */
+  
+  /* 5. 查詢按鈕與彈窗優化 */
+  .query-btn { width: 100%; justify-content: center; margin-top: 5px; }
+  .modal { width: 95%; margin: 0 auto; border-radius: 14px; }
 }
 @media print{.ph,.gen-wrap,.add-leg-wrap,.leg-remove,.modal-overlay{display:none!important}body{background:white}.tbl-wrap{box-shadow:none}}
 /* ─── Import bar (in header) ─── */
