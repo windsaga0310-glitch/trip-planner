@@ -41,27 +41,31 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#eef2ff;color:var(--
 .clock-grp {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 6px;
   align-items: center;
-  padding-left: 20px;
+  padding-left: 22px;
   border-left: 1px solid rgba(255, 255, 255, 0.2);
-  min-width: 140px;
+  min-width: 168px;
 }
 .clock-select {
   background: rgba(255, 255, 255, 0.15);
   color: white;
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 6px;
-  font-size: 0.65rem;
-  padding: 2px 4px;
+  font-size: 0.7rem;
+  padding: 4px 6px;
   outline: none;
-  width: 110px;
+  width: 158px;
+  max-width: 100%;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   cursor: pointer;
 }
 .clock-select option { background: var(--blue-d); color: white; }
-.clock-display { color: white; text-align: center; line-height: 1.2; }
-.clock-time { font-family: monospace; font-size: 1.1rem; font-weight: 800; letter-spacing: 1px; }
-.clock-date { font-size: 0.65rem; opacity: 0.8; font-weight: 600; }
+.clock-display { color: white; text-align: center; line-height: 1.3; }
+.clock-time { font-family: monospace; font-size: 1.15rem; font-weight: 800; letter-spacing: 1px; }
+.clock-date { font-size: 0.68rem; opacity: 0.8; font-weight: 600; margin-top: 1px; }
+.clock-tz-detail { font-size: 0.6rem; opacity: 0.65; font-weight: 700; margin-top: 1px; letter-spacing: .3px; }
 
 /* --- 新增右上方品牌標籤樣式 --- */
 .studio-tag {
@@ -446,6 +450,70 @@ tbody tr:last-child td{border-bottom:none}
   box-shadow:0 4px 18px rgba(124,58,237,.4);transition:all .2s;display:flex;align-items:center;gap:10px}
 .sched-btn:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(124,58,237,.5)}
 
+/* ─── Generate Map button ─── */
+.map-btn{background:linear-gradient(135deg,#0e7490,#06b6d4);color:white;border:none;border-radius:30px;
+  padding:15px 36px;font-size:1rem;font-weight:800;cursor:pointer;letter-spacing:.5px;
+  box-shadow:0 4px 18px rgba(6,182,212,.4);transition:all .2s;display:flex;align-items:center;gap:10px}
+.map-btn:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(6,182,212,.5)}
+
+/* ─── Map section ─── */
+#map-section{display:none;margin-top:40px;animation:fadeUp .4s ease}
+.map-title-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px}
+.map-title{font-size:1.05rem;font-weight:800}
+.map-title-btns{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.map-toggle{display:inline-flex;align-items:center;gap:6px;background:#ecfeff;color:#0e7490;
+  border:1.5px solid #a5f3fc;border-radius:20px;padding:6px 14px;font-size:.78rem;font-weight:700;cursor:pointer;user-select:none}
+.map-toggle input{cursor:pointer;accent-color:#0e7490}
+.map-clear-btn{background:white;color:var(--red);border:1.5px solid var(--red-m);border-radius:20px;
+  padding:6px 16px;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .15s}
+.map-clear-btn:hover{background:var(--red-l)}
+.map-proj-btn{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#0e7490,#164e63);
+  color:white;border:none;border-radius:20px;padding:6px 16px;font-size:.78rem;font-weight:700;cursor:pointer;
+  transition:all .15s;white-space:nowrap}
+.map-proj-btn:hover{opacity:.9;transform:translateY(-1px)}
+.map-daynight-btn{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#475569,#1e293b);
+  color:white;border:none;border-radius:20px;padding:6px 16px;font-size:.78rem;font-weight:700;cursor:pointer;
+  transition:all .15s;white-space:nowrap}
+.map-daynight-btn:hover{opacity:.9;transform:translateY(-1px)}
+.map-export-btn{display:inline-flex;align-items:center;gap:6px;background:white;color:#0e7490;
+  border:1.5px solid #a5f3fc;border-radius:20px;padding:6px 16px;font-size:.78rem;font-weight:700;cursor:pointer;
+  transition:all .15s;white-space:nowrap}
+.map-export-btn:hover{background:#ecfeff}
+.map-outer{border-radius:var(--r);box-shadow:var(--sh-md);overflow:hidden;background:#0b1626}
+#flight-map{width:100%;height:560px;background:#0b1626}
+.map-empty{text-align:center;padding:40px 20px;color:var(--g500);font-size:.85rem;background:white}
+/* !important throughout — maplibre-gl.css is linked AFTER this stylesheet in
+   <head>, so at equal specificity its own default popup rules (white
+   background) would otherwise win the cascade and override just the
+   properties it also sets, leaving our text color applied on its white
+   background — unreadable pale text, which is exactly the bug reported. */
+.maplibregl-popup-content{background:#0f2032!important;color:#e5f6fb!important;border-radius:10px!important;
+  font-size:.78rem!important;padding:10px 12px!important;box-shadow:0 6px 20px rgba(0,0,0,.4)!important}
+.maplibregl-popup-content b{color:#5eead4!important}
+.maplibregl-popup-tip{border-top-color:#0f2032!important;border-bottom-color:#0f2032!important}
+.maplibregl-popup-close-button{color:#9fd8e6!important}
+.maplibregl-popup-close-button:hover{background:rgba(255,255,255,.12)!important;color:white!important}
+
+/* ─── Glowing city-light markers ─── */
+.city-glow-marker{position:relative;width:22px;height:22px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.glow-dot{position:absolute;width:9px;height:9px;border-radius:50%;background:#5eead4;
+  box-shadow:0 0 6px 2px #5eead4,0 0 16px 6px rgba(94,234,212,.55),0 0 30px 12px rgba(94,234,212,.25);
+  animation:glowPulse 2.4s ease-in-out infinite}
+.glow-dot.dep{background:#5eead4;box-shadow:0 0 6px 2px #5eead4,0 0 16px 6px rgba(94,234,212,.55),0 0 30px 12px rgba(94,234,212,.25)}
+.glow-dot.arr{background:#fbbf24;box-shadow:0 0 6px 2px #fbbf24,0 0 16px 6px rgba(251,191,36,.55),0 0 30px 12px rgba(251,191,36,.25)}
+.glow-num{position:relative;z-index:2;font-size:.6rem;font-weight:800;color:#04222b;background:white;
+  border-radius:50%;width:17px;height:17px;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 0 2px rgba(255,255,255,.9)}
+@keyframes glowPulse{0%,100%{opacity:.8;transform:scale(1)}50%{opacity:1;transform:scale(1.3)}}
+.map-marker-label{background:#0f2032;border:1px solid rgba(94,234,212,.4);border-radius:8px;padding:2px 7px;
+  font-size:.66rem;font-weight:700;color:#5eead4;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+
+.map-legend{padding:12px 16px;border-top:1px solid rgba(255,255,255,.08);display:flex;flex-wrap:wrap;gap:8px;background:#0b1626}
+.map-legend-chip{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);
+  border-radius:20px;padding:4px 10px 4px 6px;font-size:.72rem;font-weight:600;color:#cbd5e1}
+.map-legend-chip .num{display:flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;
+  background:#5eead4;color:#04222b;font-size:.62rem;font-weight:800}
+
 /* ─── Schedule section ─── */
 #schedule{display:none;margin-top:40px;animation:fadeUp .4s ease}
 .sched-title-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px}
@@ -635,6 +703,8 @@ tbody tr:last-child td{border-bottom:none}
 .sched-color-btn.c-clear::after { content:''; position:absolute; top:50%; left:15%; right:15%; height:2px; background:#dc2626; transform:translateY(-50%) rotate(45deg); }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.css">
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
 </head>
 <body>
 
@@ -722,6 +792,7 @@ tbody tr:last-child td{border-bottom:none}
     <div class="clock-display">
       <div class="clock-date" id="clock-1-date"></div>
       <div class="clock-time" id="clock-1-time"></div>
+      <div class="clock-tz-detail" id="clock-1-detail"></div>
     </div>
   </div>
 
@@ -730,6 +801,7 @@ tbody tr:last-child td{border-bottom:none}
     <div class="clock-display">
       <div class="clock-date" id="clock-2-date"></div>
       <div class="clock-time" id="clock-2-time"></div>
+      <div class="clock-tz-detail" id="clock-2-detail"></div>
     </div>
   </div>
 
@@ -782,6 +854,13 @@ tbody tr:last-child td{border-bottom:none}
       </svg>
       Generate Schedule
     </button>
+    <button class="map-btn" onclick="generateMap()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
+        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+      </svg>
+      Generate Map
+    </button>
   </div>
 
   <div id="result">
@@ -830,6 +909,25 @@ tbody tr:last-child td{border-bottom:none}
     </div>
     <div id="sched-merge-bar"></div>
   </div>
+
+  <div id="map-section">
+    <div class="map-title-bar">
+      <div class="map-title">🗺 飛行地圖</div>
+      <div class="map-title-btns">
+        <label class="map-toggle"><input type="checkbox" id="map-show-city" checked onchange="renderFlightMap()"> 顯示城市</label>
+        <label class="map-toggle"><input type="checkbox" id="map-show-date" checked onchange="renderFlightMap()"> 顯示日期</label>
+        <label class="map-toggle"><input type="checkbox" id="map-show-route" checked onchange="renderFlightMap()"> 顯示飛行軌跡</label>
+        <button class="map-proj-btn" id="map-proj-btn" onclick="toggleMapProjection()" title="3D 模式下可用滑鼠拖曳旋轉地球">🌐 切換 3D 地球</button>
+        <button class="map-daynight-btn" id="map-daynight-btn" onclick="toggleMapDayNight()" title="切換白天／夜間底圖">🌙 切換夜間模式</button>
+        <button class="map-export-btn" onclick="exportMapImage()" title="將目前地圖匯出成 JPG 圖片">📷 匯出 JPG</button>
+        <button class="map-clear-btn" onclick="clearMap()">✕ 關閉</button>
+      </div>
+    </div>
+    <div class="map-outer">
+      <div id="flight-map"></div>
+      <div class="map-legend" id="map-legend"></div>
+    </div>
+  </div>
 </div>
 
 <div id="toast"></div>
@@ -848,6 +946,7 @@ const GEO = {
   US:{ label:'🇺🇸 美國 United States', cities:{
     SanFrancisco:{ label:'舊金山 San Francisco',  airports:[{c:'SFO',n:'舊金山國際機場 SFO Intl'}]},
     LosAngeles:{   label:'洛杉磯 Los Angeles',     airports:[{c:'LAX',n:'洛杉磯國際機場 LAX'},{c:'BUR',n:'好萊塢伯班克 Burbank'},{c:'SNA',n:'約翰韋恩 John Wayne'}]},
+    Irvine:{       label:'爾灣 Irvine',            airports:[{c:'SNA',n:'約翰韋恩 John Wayne'},{c:'LGB',n:'長堤機場 Long Beach'}]},
     NewYork:{      label:'紐約 New York',          airports:[{c:'JFK',n:'甘迺迪 JFK Intl'},{c:'EWR',n:'紐瓦克 Newark'},{c:'LGA',n:'拉瓜迪亞 LaGuardia'}]},
     Seattle:{      label:'西雅圖 Seattle',         airports:[{c:'SEA',n:'西雅圖塔科馬 Sea-Tac'}]},
     Chicago:{      label:'芝加哥 Chicago',         airports:[{c:'ORD',n:'歐黑爾 O\'Hare'},{c:'MDW',n:'中途島 Midway'}]},
@@ -1050,6 +1149,74 @@ const IATA_ICAO = {
   EK:'UAE',QR:'QTR',EY:'ETD',LH:'DLH',AF:'AFR',BA:'BAW',KL:'KLM',
   AY:'FIN',SK:'SAS',OS:'AUA',IB:'IBE',TP:'TAP',TK:'THY',
   JX:'STB',IT:'TTW',AE:'MDA',
+};
+
+/* ════════════════════════════════════════
+   AIRPORT COORDINATES  IATA code → [lat, lon]
+   Used to plot flight points on the world map (Generate Map)
+   ════════════════════════════════════════ */
+const AIRPORT_COORDS = {
+  // Taiwan
+  TPE:[25.0797,121.2342], TSA:[25.0694,121.5522], KHH:[22.5771,120.3499], RMQ:[24.2647,120.6198], TNN:[22.9502,120.2058],
+  // USA
+  SFO:[37.6213,-122.3790], LAX:[33.9416,-118.4085], BUR:[34.2007,-118.3590], SNA:[33.6757,-117.8682], LGB:[33.8177,-118.1516],
+  JFK:[40.6413,-73.7781], EWR:[40.6895,-74.1745], LGA:[40.7769,-73.8740], SEA:[47.4502,-122.3088],
+  ORD:[41.9742,-87.9073], MDW:[41.7868,-87.7522], BOS:[42.3656,-71.0096], DFW:[32.8998,-97.0403], DAL:[32.8471,-96.8518],
+  MIA:[25.7959,-80.2870], ATL:[33.6407,-84.4277], DEN:[39.8561,-104.6737], LAS:[36.0840,-115.1537], HNL:[21.3245,-157.9251],
+  PDX:[45.5898,-122.5951], SAN:[32.7338,-117.1933], PHX:[33.4342,-112.0116], IAD:[38.9531,-77.4565], DCA:[38.8512,-77.0402],
+  IAH:[29.9902,-95.3368], HOU:[29.6454,-95.2789], MSP:[44.8848,-93.2223], SJC:[37.3626,-121.9291], ANC:[61.1743,-149.9963],
+  // Japan
+  NRT:[35.7720,140.3929], HND:[35.5494,139.7798], KIX:[34.4347,135.2441], ITM:[34.7855,135.4382],
+  NGO:[34.8584,136.8048], FUK:[33.5859,130.4506], CTS:[42.7752,141.6923], OKA:[26.1958,127.6458],
+  // Korea
+  ICN:[37.4602,126.4407], GMP:[37.5583,126.7906], PUS:[35.1795,128.9382],
+  // SEA / HK
+  SIN:[1.3644,103.9915], HKG:[22.3080,113.9185],
+  BKK:[13.6900,100.7501], DMK:[13.9126,100.6067], CNX:[18.7669,98.9626], HKT:[8.1132,98.3169],
+  // UK
+  LHR:[51.4700,-0.4543], LGW:[51.1537,-0.1821], STN:[51.8850,0.2350], MAN:[53.3537,-2.2750],
+  // France
+  CDG:[49.0097,2.5479], ORY:[48.7233,2.3794], LYS:[45.7256,5.0811],
+  // Germany
+  FRA:[50.0379,8.5622], MUC:[48.3538,11.7861], DUS:[51.2895,6.7668], BER:[52.3667,13.5033],
+  HAM:[53.6304,9.9882], NUE:[49.4987,11.0669], STR:[48.6899,9.2220],
+  // Italy
+  FCO:[41.8003,12.2389], CIA:[41.7994,12.5949], MXP:[45.6306,8.7281], LIN:[45.4451,9.2767], VCE:[45.5053,12.3519], FLR:[43.8100,11.2051],
+  // Spain
+  MAD:[40.4983,-3.5676], BCN:[41.2974,2.0833], AGP:[36.6749,-4.4991],
+  // Austria / Switzerland / Belgium / Portugal / Netherlands
+  VIE:[48.1103,16.5697], SZG:[47.7933,13.0043],
+  ZRH:[47.4647,8.5492], GVA:[46.2381,6.1090], BSL:[47.5896,7.5299],
+  BRU:[50.9014,4.4844],
+  LIS:[38.7813,-9.1359], OPO:[41.2481,-8.6814],
+  AMS:[52.3086,4.7639],
+  // Nordics
+  ARN:[59.6519,17.9186], BMA:[59.3544,17.9414], GOT:[57.6628,12.2798],
+  CPH:[55.6180,12.6560], OSL:[60.1976,11.1004], HEL:[60.3172,24.9633],
+  // Central/Eastern Europe
+  PRG:[50.1008,14.2600], BUD:[47.4298,19.2611], WAW:[52.1657,20.9671], KRK:[50.0777,19.7848],
+  ATH:[37.9364,23.9445], SKG:[40.5197,22.9709], IST:[41.2753,28.7519], SAW:[40.8986,29.3092], ESB:[40.1281,32.9951],
+  // Australia / New Zealand
+  SYD:[-33.9399,151.1753], MEL:[-37.6690,144.8410], BNE:[-27.3842,153.1175], PER:[-31.9385,115.9672], ADL:[-34.9450,138.5306],
+  AKL:[-37.0082,174.7850], CHC:[-43.4894,172.5320],
+  // Canada
+  YVR:[49.1967,-123.1815], YYZ:[43.6777,-79.6248], YUL:[45.4706,-73.7408], YYC:[51.1215,-114.0076],
+  // China
+  PEK:[40.0801,116.5846], PKX:[39.5098,116.4109], PVG:[31.1443,121.8083], SHA:[31.1979,121.3363],
+  CAN:[23.3924,113.2988], SZX:[22.6393,113.8107], CTU:[30.5728,103.9468], TFU:[30.3184,104.4416], XMN:[24.5440,118.1277],
+  // Middle East
+  DXB:[25.2532,55.3657], DWC:[24.8967,55.1614], AUH:[24.4330,54.6511],
+  RUH:[24.9576,46.6988], JED:[21.6796,39.1565], DOH:[25.2731,51.6081],
+  // SE Asia
+  KUL:[2.7456,101.7099], SZB:[3.1304,101.5490], PEN:[5.2971,100.2769], BKI:[5.9372,116.0511],
+  MNL:[14.5086,121.0194], CEB:[10.3075,123.9789],
+  CGK:[-6.1256,106.6559], DPS:[-8.7482,115.1671], SUB:[-7.3798,112.7869],
+  HAN:[21.2212,105.8072], SGN:[10.8188,106.6520], DAD:[16.0439,108.1994],
+  PNH:[11.5466,104.8443], SAI:[13.4106,103.8130], MLE:[4.1918,73.5290],
+  // India
+  BOM:[19.0896,72.8656], DEL:[28.5562,77.1000], BLR:[13.1986,77.7066], MAA:[12.9941,80.1709],
+  // Africa
+  JNB:[-26.1392,28.2460], CPT:[-33.9715,18.6021],
 };
 
 /* ════════════════════════════════════════
@@ -2892,6 +3059,15 @@ function autoFillFlightsToSchedule(silent) {
   if (!s) { if (!silent) showToast('⚠ 請先產生行程時間表', 'warn'); return; }
   if (!state || !state.legs || !state.legs.length) { if (!silent) showToast('⚠ 請先填入航段資料', 'warn'); return; }
 
+  // Strip every previously auto-filled flight line from every cell before
+  // writing again. This is pattern-based (recognizes the ✈/🛬 prefix this
+  // function always writes) rather than relying on in-memory bookkeeping,
+  // so it correctly overwrites even across a page reload, a fresh Excel
+  // import, or a schedule that already has old auto-filled lines baked in
+  // — any of which would otherwise keep stacking up duplicates on each run.
+  // Manually-typed notes (which won't start with those exact emoji) are left alone.
+  _stripAutoFillLines(s);
+
   let filled = 0;
 
   state.legs.forEach(leg => {
@@ -2930,6 +3106,27 @@ function autoFillFlightsToSchedule(silent) {
       : '⚠ 無可填入的航班（請確認航段已填入日期與時間）',
       filled > 0 ? 'success' : 'warn');
   }
+}
+
+/* Remove every line matching this function's own output format
+   (starts with "✈ " or "🛬 ") from every schedule cell, so re-running
+   auto-fill always starts from a clean slate instead of stacking copies. */
+function _stripAutoFillLines(s) {
+  Object.keys(s.cells).forEach(key => {
+    const content = s.cells[key];
+    if (!content) return;
+    // NOTE: the "u" flag is required here — 🛬 (U+1F6EC) is outside the
+    // Basic Multilingual Plane and encoded as a UTF-16 surrogate pair.
+    // Without "u", a character class containing it silently splits into
+    // its two surrogate halves instead of matching the whole emoji, so
+    // "🛬 ..." lines never matched and kept duplicating on every run
+    // (while "✈ ..." lines, a plain BMP character, worked fine — exactly
+    // the asymmetric bug that was reported).
+    const kept = content.split('\n').filter(line => !/^[✈🛬]\s/u.test(line));
+    if (kept.length !== content.split('\n').length) {
+      s.cells[key] = kept.join('\n');
+    }
+  });
 }
 
 function _normTime(t) {
@@ -2998,6 +3195,468 @@ function generateSchedule() {
 
 function clearSchedule() {
   document.getElementById('schedule').style.display='none';
+}
+
+/* ════════════════════════════════════════
+   FLIGHT MAP  (Generate Map) — MapLibre GL
+   ════════════════════════════════════════ */
+let _flightMap = null;
+let _mapMarkers = [];
+let _mapIs3D = false;
+let _mapPlottedStops = [];
+const MAP_STYLE_DAY   = 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json';       // white bg, blue ocean
+const MAP_STYLE_NIGHT = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';    // dark night-lights look
+// Default to night mode outside 06:00–18:00 local time; a manual toggle button can override this per-session.
+let _mapDarkMode = (() => { const h = new Date().getHours(); return h < 6 || h >= 18; })();
+function currentMapStyle() { return _mapDarkMode ? MAP_STYLE_NIGHT : MAP_STYLE_DAY; }
+
+/* CARTO Voyager's default ocean/lake fill ('water': #b0d0d6, a pale gray-
+   blue) reads flat next to the city glow markers. Recolor it at runtime to
+   a richer, more saturated "satellite photo" ocean blue — only touches the
+   two water fill layers, leaving land, roads, labels and borders untouched.
+   No-ops harmlessly in night mode / if the style hasn't loaded these layers
+   (e.g. dark-matter, which has no 'water' layer by this id). */
+function applyDayOceanColor() {
+  if (_mapDarkMode || !_flightMap) return;
+  try {
+    if (_flightMap.getLayer('water')) _flightMap.setPaintProperty('water', 'fill-color', '#1a6fa8');
+    if (_flightMap.getLayer('water_shadow')) _flightMap.setPaintProperty('water_shadow', 'fill-color', 'rgba(13,66,102,0.45)');
+  } catch (e) {}
+}
+
+function generateMap() {
+  if (!state.legs || !state.legs.length) { showToast('⚠ 請先填入航段資料', 'warn'); return; }
+  document.getElementById('map-section').style.display = 'block';
+  document.getElementById('map-section').scrollIntoView({behavior:'smooth', block:'start'});
+  const dnBtn = document.getElementById('map-daynight-btn');
+  if (dnBtn) dnBtn.textContent = _mapDarkMode ? '☀️ 切換白天模式' : '🌙 切換夜間模式';
+  // Defer so the map container has a real size before MapLibre initializes
+  setTimeout(renderFlightMap, 30);
+}
+
+function clearMap() {
+  document.getElementById('map-section').style.display = 'none';
+}
+
+/* City display name only (no airport code) — used for the "顯示城市" map label */
+function cityLabelFor(country, city) {
+  if (country && GEO[country] && city && GEO[country].cities[city]) return GEO[country].cities[city].label;
+  return city || '';
+}
+
+/* Ordered list of airports actually visited, in flight sequence */
+function buildFlightStops() {
+  const stops = [];
+  state.legs.forEach((leg, i) => {
+    if (i === 0) {
+      stops.push({
+        code:  (leg.fromAirport || '').toUpperCase(),
+        place: legPlaceText(leg.fromCountry, leg.fromCity, leg.fromAirport),
+        cityLabel: cityLabelFor(leg.fromCountry, leg.fromCity),
+        date:  leg.depDate || '',
+        kind:  'dep',
+      });
+    }
+    stops.push({
+      code:  (leg.toAirport || '').toUpperCase(),
+      place: legPlaceText(leg.toCountry, leg.toCity, leg.toAirport),
+      cityLabel: cityLabelFor(leg.toCountry, leg.toCity),
+      date:  leg.arrDate || leg.depDate || '',
+      kind:  'arr',
+    });
+  });
+  return stops;
+}
+
+function fmtDateShort(d) {
+  if (!d) return '';
+  const dt = new Date(d + 'T12:00:00');
+  if (isNaN(dt)) return d;
+  return dt.toLocaleDateString('zh-TW', { month:'numeric', day:'numeric' });
+}
+
+/* ─── Great-circle interpolation ───
+   Straight lat/lon interpolation draws the WRONG route whenever a leg
+   crosses the ±180° antimeridian (e.g. Taipei → Toronto would render as a
+   line through Europe instead of the true shortest path over the Pacific).
+   This does a proper spherical slerp between two [lat,lon] points, then
+   "unwraps" the resulting longitudes so the path stays continuous instead
+   of jumping across the date line. */
+function greatCirclePoints(a, b, segments = 80) {
+  const toRad = d => d * Math.PI / 180, toDeg = r => r * 180 / Math.PI;
+  const lat1 = toRad(a[0]), lon1 = toRad(a[1]);
+  const lat2 = toRad(b[0]), lon2 = toRad(b[1]);
+
+  const d = 2 * Math.asin(Math.sqrt(
+    Math.sin((lat2-lat1)/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin((lon2-lon1)/2)**2
+  ));
+
+  if (d < 1e-9) return [[toDeg(lon1), toDeg(lat1)]];
+
+  const pts = [];
+  for (let i = 0; i <= segments; i++) {
+    const f = i / segments;
+    const A = Math.sin((1-f)*d) / Math.sin(d);
+    const B = Math.sin(f*d) / Math.sin(d);
+    const x = A*Math.cos(lat1)*Math.cos(lon1) + B*Math.cos(lat2)*Math.cos(lon2);
+    const y = A*Math.cos(lat1)*Math.sin(lon1) + B*Math.cos(lat2)*Math.sin(lon2);
+    const z = A*Math.sin(lat1) + B*Math.sin(lat2);
+    const lat = Math.atan2(z, Math.sqrt(x*x + y*y));
+    const lon = Math.atan2(y, x);
+    pts.push([toDeg(lon), toDeg(lat)]);
+  }
+  // Unwrap so consecutive longitudes never jump >180° — keeps the curve
+  // sweeping the short way around the globe instead of snapping backwards.
+  for (let i = 1; i < pts.length; i++) {
+    while (pts[i][0] - pts[i-1][0] > 180)  pts[i][0] -= 360;
+    while (pts[i][0] - pts[i-1][0] < -180) pts[i][0] += 360;
+  }
+  return pts;
+}
+
+/* Procedurally draw a small triangular arrow used for route-direction symbols */
+function ensureArrowIcon(map, cb) {
+  if (map.hasImage('flight-arrow')) { cb(); return; }
+  const size = 16;
+  const canvas = document.createElement('canvas');
+  canvas.width = size; canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#5eead4';
+  ctx.beginPath();
+  ctx.moveTo(size*0.5, size*0.12);   // tip (points "up" — MapLibre rotates this to match line bearing)
+  ctx.lineTo(size*0.82, size*0.85);
+  ctx.lineTo(size*0.5, size*0.65);
+  ctx.lineTo(size*0.18, size*0.85);
+  ctx.closePath();
+  ctx.fill();
+  map.addImage('flight-arrow', ctx.getImageData(0, 0, size, size), { pixelRatio: 2 });
+  cb();
+}
+
+function renderFlightMap() {
+  const container = document.getElementById('flight-map');
+  const legend = document.getElementById('map-legend');
+  if (!container) return;
+  if (typeof maplibregl === 'undefined') {
+    container.innerHTML = '<div class="map-empty">⚠ 地圖元件載入失敗，請確認網路連線後重新整理</div>';
+    return;
+  }
+
+  const showCity  = document.getElementById('map-show-city')?.checked;
+  const showDate  = document.getElementById('map-show-date')?.checked;
+  const showRoute = document.getElementById('map-show-route')?.checked;
+
+  const stops = buildFlightStops();
+  const plotted = [];
+  const missing = [];
+  const seenCount = {};
+  stops.forEach((s, idx) => {
+    const coord = AIRPORT_COORDS[s.code];
+    if (coord) {
+      const n = seenCount[s.code] || 0;
+      seenCount[s.code] = n + 1;
+      plotted.push({ ...s, order: idx + 1, latlng: coord, repeatIdx: n });
+    } else if (s.code) missing.push(s.code);
+  });
+
+  if (!plotted.length) {
+    container.innerHTML = '<div class="map-empty">⚠ 尚無可定位的機場座標，請先填入航段的出發／目的地機場</div>';
+    legend.innerHTML = '';
+    _mapPlottedStops = [];
+    return;
+  }
+  _mapPlottedStops = plotted;
+
+  const buildRouteGeoJSON = () => {
+    const features = [];
+    for (let i = 0; i < plotted.length - 1; i++) {
+      features.push({
+        type: 'Feature', properties: {},
+        geometry: { type: 'LineString', coordinates: greatCirclePoints(plotted[i].latlng, plotted[i+1].latlng, 80) }
+      });
+    }
+    return { type: 'FeatureCollection', features };
+  };
+
+  const applyLayers = () => {
+    const map = _flightMap;
+    try { map.setFog({}); } catch(e) {}
+    applyDayOceanColor();
+
+    const routeData = buildRouteGeoJSON();
+    if (map.getSource('flight-route')) {
+      map.getSource('flight-route').setData(routeData);
+      map.setLayoutProperty('flight-route-line', 'visibility', showRoute ? 'visible' : 'none');
+      if (map.getLayer('flight-route-arrows')) {
+        map.setLayoutProperty('flight-route-arrows', 'visibility', showRoute ? 'visible' : 'none');
+      }
+    } else {
+      map.addSource('flight-route', { type: 'geojson', data: routeData, lineMetrics: true });
+      map.addLayer({
+        id: 'flight-route-line', type: 'line', source: 'flight-route',
+        layout: { 'line-cap': 'round', 'line-join': 'round', visibility: showRoute ? 'visible' : 'none' },
+        paint: { 'line-color': '#5eead4', 'line-width': 2.4, 'line-opacity': 0.85, 'line-dasharray': [0.2, 1.6] }
+      });
+      ensureArrowIcon(map, () => {
+        if (!map.getLayer('flight-route-arrows')) {
+          map.addLayer({
+            id: 'flight-route-arrows', type: 'symbol', source: 'flight-route',
+            layout: {
+              'symbol-placement': 'line', 'symbol-spacing': 70,
+              'icon-image': 'flight-arrow', 'icon-size': 0.9,
+              'icon-rotation-alignment': 'map', 'icon-allow-overlap': true, 'icon-ignore-placement': true,
+              visibility: showRoute ? 'visible' : 'none'
+            }
+          });
+        }
+      });
+    }
+
+    // Markers — glowing city-light dots, pixel-offset when an airport repeats
+    // (e.g. a round trip back to the departure city) so they never fully overlap.
+    _mapMarkers.forEach(m => m.remove());
+    _mapMarkers = [];
+    plotted.forEach(p => {
+      const labelParts = [];
+      if (showCity && p.cityLabel) labelParts.push(p.cityLabel);
+      if (showDate && p.date) labelParts.push(fmtDateShort(p.date));
+      const labelText = labelParts.join(' · ');
+
+      const el = document.createElement('div');
+      el.className = 'city-glow-marker';
+      const dotKind = (p.kind === 'dep' && p.order === 1) ? 'dep' : 'arr';
+      el.innerHTML = `<div class="glow-dot ${dotKind}"></div><div class="glow-num">${p.order}</div>`;
+
+      const step = 16;
+      const offset = p.repeatIdx === 0 ? [0, 0] : [step * p.repeatIdx, -step * p.repeatIdx];
+
+      if (labelText) {
+        const labelEl = document.createElement('div');
+        labelEl.className = 'map-marker-label';
+        labelEl.style.cssText = 'position:absolute;left:50%;bottom:26px;transform:translateX(-50%)';
+        labelEl.textContent = labelText;
+        el.appendChild(labelEl);
+      }
+
+      const marker = new maplibregl.Marker({ element: el, offset })
+        .setLngLat([p.latlng[1], p.latlng[0]])
+        .setPopup(new maplibregl.Popup({ offset: [offset[0], offset[1] - 18] }).setHTML(
+          `<b>${esc(p.place)}</b><br>${esc(p.code)}${p.date ? '<br>' + esc(fmtDate(p.date)) : ''}`
+        ))
+        .addTo(map);
+      _mapMarkers.push(marker);
+    });
+
+    const bounds = new maplibregl.LngLatBounds();
+    plotted.forEach(p => bounds.extend([p.latlng[1], p.latlng[0]]));
+    map.fitBounds(bounds, { padding: 60, maxZoom: 6, duration: 500 });
+  };
+
+  if (!_flightMap) {
+    container.innerHTML = '';
+    _flightMap = new maplibregl.Map({
+      container: 'flight-map',
+      style: currentMapStyle(),
+      center: [plotted[0].latlng[1], plotted[0].latlng[0]],
+      zoom: 2,
+      preserveDrawingBuffer: true, // required so getCanvas() can be read back out for JPG export
+    });
+    _flightMap.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
+    // In globe (3D) mode, a plain left-click-drag already rotates the globe
+    // (panning the camera = spinning the sphere underneath it). Explicitly
+    // enable rotate/pitch interactions too, for two-finger / right-drag tilt.
+    _flightMap.dragRotate.enable();
+    _flightMap.touchZoomRotate.enableRotation();
+    _flightMap.on('load', applyLayers);
+  } else {
+    _flightMap.resize();
+    // NOTE: 'load' is a Map lifecycle event that fires exactly once, the
+    // very first time the map finishes loading — it will never fire again
+    // after a later setStyle() call, so it's unsafe to wait on here. 'idle'
+    // fires every time the map finishes rendering (including after every
+    // style change), so it's the correct event to fall back to.
+    if (_flightMap.isStyleLoaded()) applyLayers();
+    else _flightMap.once('idle', applyLayers);
+  }
+
+  legend.innerHTML = plotted.map(p =>
+    `<span class="map-legend-chip"><span class="num">${p.order}</span>${esc(p.code)}${p.date ? ' · ' + esc(fmtDateShort(p.date)) : ''}</span>`
+  ).join('') + (missing.length
+    ? `<span class="map-legend-chip" style="color:#f87171;border-color:rgba(248,113,113,.4)">⚠ 無座標資料：${missing.map(esc).join(', ')}</span>`
+    : '');
+}
+
+function toggleMapProjection() {
+  if (!_flightMap) return;
+  if (!_flightMap.isStyleLoaded || !_flightMap.isStyleLoaded()) {
+    showToast('⏳ 地圖仍在載入中，請稍候再切換', 'warn');
+    return;
+  }
+  const btn = document.getElementById('map-proj-btn');
+  _mapIs3D = !_mapIs3D;
+  try {
+    if (typeof _flightMap.setProjection === 'function') {
+      _flightMap.setProjection({ type: _mapIs3D ? 'globe' : 'mercator' });
+    }
+    _flightMap.easeTo({ pitch: _mapIs3D ? 45 : 0, duration: 600 });
+    if (btn) btn.textContent = _mapIs3D ? '🗺 切換 2D 平面' : '🌐 切換 3D 地球';
+  } catch (e) {
+    _mapIs3D = !_mapIs3D;
+    showToast('⚠ 此瀏覽器不支援 3D 地球模式', 'warn');
+  }
+}
+
+/* Manual white-bg/blue-ocean (day) ↔ dark night-lights (night) basemap switch.
+   setStyle() wipes all custom sources/layers, so once the new style finishes
+   loading we re-run renderFlightMap() to redraw the route line/arrows and
+   re-apply the 3D globe projection if it was active. DOM markers (glow dots,
+   labels, popups) live outside the style and survive setStyle untouched. */
+function toggleMapDayNight() {
+  if (!_flightMap) return;
+  if (!_flightMap.isStyleLoaded || !_flightMap.isStyleLoaded()) {
+    showToast('⏳ 地圖仍在載入中，請稍候再切換', 'warn');
+    return;
+  }
+  _mapDarkMode = !_mapDarkMode;
+  const btn = document.getElementById('map-daynight-btn');
+  if (btn) btn.textContent = _mapDarkMode ? '☀️ 切換白天模式' : '🌙 切換夜間模式';
+  // Register the listener BEFORE calling setStyle(). Registering it after
+  // (the previous order) races setStyle(): if the target style URL was
+  // already fetched once this session (e.g. switching back to a mode we've
+  // visited before), the browser cache can resolve it fast enough that
+  // 'style.load' fires before the .once() call below even runs — silently
+  // dropping the re-render, which is why re-applying the deep ocean color
+  // only worked the first time and reverted to the flat default on repeat
+  // toggles back to day mode.
+  _flightMap.once('style.load', () => {
+    if (_mapIs3D && typeof _flightMap.setProjection === 'function') {
+      _flightMap.setProjection({ type: 'globe' });
+    }
+    renderFlightMap();
+  });
+  _flightMap.setStyle(currentMapStyle());
+}
+
+/* Small canvas helper for the rounded label chips drawn during JPG export. */
+function _roundRectPath(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+/* Export the current flight map as a JPG. The base map (tiles + route line
+   + arrows) is a WebGL canvas that can be read back directly via
+   getCanvas() (requires preserveDrawingBuffer:true, set at map creation).
+   The city markers/labels are separate DOM elements layered on top by
+   MapLibre, NOT part of that canvas — so they're redrawn manually here at
+   their current projected pixel position onto a composited output canvas. */
+/* Export capture is done on the map's 'idle' event (fires once the current
+   view has fully rendered — all tiles loaded, no pending frames) rather than
+   immediately on click. Capturing mid-render is what previously produced a
+   blank/tile-less JPG: preserveDrawingBuffer keeps whatever was last painted,
+   but if a repaint was still in flight the "last paint" could be an empty
+   frame. triggerRepaint() + waiting for idle guarantees the canvas holds a
+   complete frame — i.e. exactly what's on screen — before we read it back. */
+function exportMapImage() {
+  if (!_flightMap) { showToast('⚠ 請先產生地圖', 'warn'); return; }
+  if (!_flightMap.isStyleLoaded || !_flightMap.isStyleLoaded()) {
+    showToast('⏳ 地圖仍在載入中，請稍候再匯出', 'warn');
+    return;
+  }
+  let done = false;
+  const finish = () => { if (done) return; done = true; _captureMapToJpg(); };
+  _flightMap.once('idle', finish);
+  _flightMap.triggerRepaint();
+  setTimeout(finish, 500); // safety fallback in case 'idle' doesn't fire (e.g. view was already fully settled)
+}
+
+function _captureMapToJpg() {
+  let srcCanvas;
+  try { srcCanvas = _flightMap.getCanvas(); } catch (e) { srcCanvas = null; }
+  if (!srcCanvas) { showToast('⚠ 地圖尚未準備好，請稍候再匯出', 'warn'); return; }
+
+  const dpr = window.devicePixelRatio || 1;
+  const w = srcCanvas.width, h = srcCanvas.height;
+  const out = document.createElement('canvas');
+  out.width = w; out.height = h;
+  const ctx = out.getContext('2d');
+
+  ctx.fillStyle = _mapDarkMode ? '#0b1626' : '#e7eef4';
+  ctx.fillRect(0, 0, w, h);
+  try {
+    ctx.drawImage(srcCanvas, 0, 0, w, h);
+  } catch (e) {
+    showToast('⚠ 匯出失敗，瀏覽器不支援讀取地圖畫布內容', 'warn');
+    return;
+  }
+
+  const showCity = document.getElementById('map-show-city')?.checked;
+  const showDate = document.getElementById('map-show-date')?.checked;
+
+  (_mapPlottedStops || []).forEach(p => {
+    const pt = _flightMap.project([p.latlng[1], p.latlng[0]]);
+    const step = 16 * dpr;
+    const ox = p.repeatIdx === 0 ? 0 : step * p.repeatIdx;
+    const oy = p.repeatIdx === 0 ? 0 : -step * p.repeatIdx;
+    const x = pt.x * dpr + ox, y = pt.y * dpr + oy;
+    const isDep = (p.kind === 'dep' && p.order === 1);
+    const color = isDep ? '#5eead4' : '#fbbf24';
+
+    ctx.save();
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 14 * dpr;
+    ctx.beginPath();
+    ctx.arc(x, y, 4.5 * dpr, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.restore();
+
+    ctx.beginPath();
+    ctx.arc(x, y, 8 * dpr, 0, Math.PI * 2);
+    ctx.fillStyle = 'white';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,.9)';
+    ctx.fillStyle = '#04222b';
+    ctx.font = `800 ${9 * dpr}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(String(p.order), x, y + 0.5 * dpr);
+
+    const labelParts = [];
+    if (showCity && p.cityLabel) labelParts.push(p.cityLabel);
+    if (showDate && p.date) labelParts.push(fmtDateShort(p.date));
+    const labelText = labelParts.join(' · ');
+    if (labelText) {
+      ctx.font = `700 ${10.5 * dpr}px sans-serif`;
+      const padX = 7 * dpr;
+      const tw = ctx.measureText(labelText).width;
+      const bw = tw + padX * 2, bh = 18 * dpr;
+      const bx = x - bw / 2, by = y - 26 * dpr - bh;
+      ctx.fillStyle = 'rgba(15,32,50,0.92)';
+      ctx.strokeStyle = 'rgba(94,234,212,0.4)';
+      ctx.lineWidth = 1 * dpr;
+      _roundRectPath(ctx, bx, by, bw, bh, 6 * dpr);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#e5f6fb';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(labelText, x, by + bh / 2 + 0.5 * dpr);
+    }
+  });
+
+  const link = document.createElement('a');
+  const stamp = new Date().toISOString().slice(0, 10);
+  link.download = `flight-map-${stamp}.jpg`;
+  link.href = out.toDataURL('image/jpeg', 0.92);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  showToast('✅ 已匯出地圖 JPG', 'success');
 }
 
 async function exportScheduleExcel() {
@@ -3123,7 +3782,7 @@ async function exportScheduleExcel() {
 /* ─── Init ─── */
 /* ─── 數字時鐘邏輯 ─── */
 const TZ_MAP = {
-  TW: 'Asia/Taipei', US: 'America/Los_Angeles', JP: 'Asia/Tokyo', KR: 'Asia/Seoul',
+  TW: 'Asia/Taipei', JP: 'Asia/Tokyo', KR: 'Asia/Seoul',
   SG: 'Asia/Singapore', HK: 'Asia/Hong_Kong', TH: 'Asia/Bangkok', GB: 'Europe/London',
   FR: 'Europe/Paris', DE: 'Europe/Berlin', IT: 'Europe/Rome', ES: 'Europe/Madrid',
   AT: 'Europe/Vienna', CH: 'Europe/Zurich', BE: 'Europe/Brussels', PT: 'Europe/Lisbon',
@@ -3135,19 +3794,72 @@ const TZ_MAP = {
   KH: 'Asia/Phnom_Penh', MV: 'Indian/Maldives', IN: 'Asia/Kolkata', QA: 'Asia/Qatar', ZA: 'Africa/Johannesburg'
 };
 
+/* USA spans multiple time zones — split into West/Central/East instead of
+   one single "美國" entry pinned to Pacific time. */
+const US_ZONES = [
+  { label: '🇺🇸 美西 US Pacific',  tz: 'America/Los_Angeles' },
+  { label: '🇺🇸 美中 US Central',  tz: 'America/Chicago' },
+  { label: '🇺🇸 美東 US Eastern',  tz: 'America/New_York' },
+];
+
+/* Build the flat zone list shown in the clock dropdowns: one entry per
+   country (from TZ_MAP), except the US which expands to its three zones,
+   inserted alphabetically where "美國" would otherwise sort. */
+function buildClockZones() {
+  const sortedCountries = Object.entries(GEO)
+    .filter(([code]) => code !== 'US')
+    .sort((a, b) => a[1].label.localeCompare(b[1].label, 'zh-TW'));
+  const zones = sortedCountries.map(([code, data]) => ({ label: data.label, tz: TZ_MAP[code] || 'UTC' }));
+  const usLabel = GEO.US ? GEO.US.label : '🇺🇸 美國 United States';
+  const insertAt = zones.findIndex(z => z.label.localeCompare(usLabel, 'zh-TW') > 0);
+  zones.splice(insertAt < 0 ? zones.length : insertAt, 0, ...US_ZONES);
+  return zones;
+}
+
 function initClocks() {
   const sel1 = document.getElementById('clock-1-tz');
   const sel2 = document.getElementById('clock-2-tz');
   if (!sel1 || !sel2) return;
   const localTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const sortedCountries = Object.entries(GEO).sort((a, b) => a[1].label.localeCompare(b[1].label, 'zh-TW'));
-  const optionsHTML = sortedCountries.map(([code, data]) => `<option value="${TZ_MAP[code] || 'UTC'}">${data.label}</option>`).join('');
+  const zones = buildClockZones();
+  const optionsHTML = zones.map(z => `<option value="${z.tz}">${z.label}</option>`).join('');
   sel1.innerHTML = optionsHTML;
   sel2.innerHTML = optionsHTML;
-  for (let code in TZ_MAP) { if (TZ_MAP[code] === localTZ) { sel1.value = localTZ; break; } }
+  const localMatch = zones.find(z => z.tz === localTZ);
+  if (localMatch) sel1.value = localMatch.tz;
   if (sel2.options.length > 1) sel2.selectedIndex = 1;
   setInterval(updateClockDisplay, 1000);
   updateClockDisplay();
+}
+
+/* Compute UTC offset in minutes for a given IANA timezone at a given moment */
+function tzOffsetMinutes(tz, date = new Date()) {
+  const dtf = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz, hour12: false,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit'
+  });
+  const parts = dtf.formatToParts(date).reduce((acc, p) => { acc[p.type] = p.value; return acc; }, {});
+  const hh = parts.hour === '24' ? '00' : parts.hour;
+  const asUTC = Date.UTC(+parts.year, +parts.month - 1, +parts.day, +hh, +parts.minute, +parts.second);
+  return Math.round((asUTC - date.getTime()) / 60000);
+}
+
+/* Short zone abbreviation, e.g. PST / JST / GMT+8 (best-effort, depends on browser ICU data) */
+function tzAbbr(tz, date = new Date()) {
+  try {
+    const parts = new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'short' }).formatToParts(date);
+    const p = parts.find(x => x.type === 'timeZoneName');
+    return p ? p.value : '';
+  } catch (e) { return ''; }
+}
+
+function tzOffsetLabel(mins) {
+  const sign = mins < 0 ? '-' : '+';
+  const abs = Math.abs(mins);
+  const hh = String(Math.floor(abs / 60)).padStart(2, '0');
+  const mm = String(abs % 60).padStart(2, '0');
+  return `UTC${sign}${hh}:${mm}`;
 }
 
 function updateClockDisplay() {
@@ -3159,6 +3871,10 @@ function updateClockDisplay() {
     try {
       document.getElementById(`clock-${id}-time`).textContent = now.toLocaleTimeString('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit' });
       document.getElementById(`clock-${id}-date`).textContent = now.toLocaleDateString('zh-TW', { timeZone: tz, month: 'short', day: 'numeric', weekday: 'short' });
+      const abbr = tzAbbr(tz, now);
+      const offsetLbl = tzOffsetLabel(tzOffsetMinutes(tz, now));
+      const detailEl = document.getElementById(`clock-${id}-detail`);
+      if (detailEl) detailEl.textContent = abbr && abbr !== offsetLbl ? `${abbr} · ${offsetLbl}` : offsetLbl;
     } catch(e) {}
   };
   update(1); update(2);
