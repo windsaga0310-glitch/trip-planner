@@ -170,6 +170,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#eef2ff;color:var(--
 .fld.fld-date{flex:0 0 128px}
 .fld.fld-time{flex:0 0 72px}
 .fld.fld-time input{text-align:center;letter-spacing:1px;font-family:monospace;font-size:.9rem}
+.fld.fld-terminal{flex:0 0 84px}
 .fdt-sep{align-self:flex-end;padding-bottom:10px;color:var(--g300);font-size:.9rem;font-weight:700;flex-shrink:0}
 
 .date-warn{font-size:.68rem;color:var(--red);margin-top:2px;display:none;background:var(--red-l);border-radius:5px;padding:3px 7px}
@@ -231,7 +232,21 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#eef2ff;color:var(--
 .sum-card{background:white;border-radius:10px;padding:14px 16px;box-shadow:var(--sh)}
 .sum-card-lbl{font-size:.63rem;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px}
 .sum-card-val{font-size:1rem;font-weight:800}
-.tbl-wrap{background:white;border-radius:var(--r);box-shadow:var(--sh-md);overflow:hidden}
+/* overflow-x:auto (not the old overflow:hidden) — now that 出發航廈/抵達航廈
+   added two more columns, the table can be wider than its container on
+   narrower desktop windows; hidden was silently clipping those columns off
+   instead of letting you scroll to them. */
+.tbl-wrap{background:white;border-radius:var(--r);box-shadow:var(--sh-md);overflow-x:auto;overflow-y:auto}
+.tbl-resize-wrap{position:relative;width:100%;margin:0 auto;box-sizing:border-box}
+.tbl-resize-handle{position:absolute;top:0;bottom:0;width:14px;cursor:ew-resize;z-index:5;display:flex;align-items:center;justify-content:center;touch-action:none}
+.tbl-resize-handle.left{left:-14px}
+.tbl-resize-handle.right{right:-14px}
+.tbl-resize-handle::before{content:'';width:4px;height:44px;border-radius:3px;background:var(--g300,#c7ced9);transition:background .15s}
+.tbl-resize-handle:hover::before,.tbl-resize-handle.active::before{background:var(--blue,#2f6fed)}
+.tbl-resize-handle-v{position:absolute;left:0;right:0;bottom:-14px;height:14px;cursor:ns-resize;z-index:5;display:flex;align-items:center;justify-content:center;touch-action:none}
+.tbl-resize-handle-v::before{content:'';height:4px;width:44px;border-radius:3px;background:var(--g300,#c7ced9);transition:background .15s}
+.tbl-resize-handle-v:hover::before,.tbl-resize-handle-v.active::before{background:var(--blue,#2f6fed)}
+@media(max-width:640px){.tbl-resize-handle,.tbl-resize-handle-v{display:none}}
 table{width:100%;border-collapse:collapse}
 thead{background:linear-gradient(135deg,var(--blue-d),var(--blue));color:white}
 thead th{padding:12px 16px;text-align:left;font-size:.72rem;font-weight:700;letter-spacing:.6px;text-transform:uppercase;white-space:nowrap}
@@ -365,15 +380,17 @@ tbody tr:last-child td{border-bottom:none}
     content: attr(data-label); /* 若 JS 有 data-label 可自動捉取 */
   }
 
-  /* 針對你目前 HTML 結構的手動標籤（對應 8 個欄位） */
+  /* 針對你目前 HTML 結構的手動標籤（對應 10 個欄位） */
   #result td:nth-of-type(1):before { content: "📍 航段"; }
   #result td:nth-of-type(2):before { content: "🛫 出發地"; }
   #result td:nth-of-type(3):before { content: "🛬 目的地"; }
   #result td:nth-of-type(4):before { content: "✈ 航班"; }
   #result td:nth-of-type(5):before { content: "📅 起飛日期"; }
   #result td:nth-of-type(6):before { content: "⏱ 起飛時間"; }
-  #result td:nth-of-type(7):before { content: "📅 降落日期"; }
-  #result td:nth-of-type(8):before { content: "⏱ 降落時間"; }
+  #result td:nth-of-type(7):before { content: "🚪 出發航廈"; }
+  #result td:nth-of-type(8):before { content: "📅 降落日期"; }
+  #result td:nth-of-type(9):before { content: "⏱ 降落時間"; }
+  #result td:nth-of-type(10):before { content: "🚪 抵達航廈"; }
 
   /* 第一欄的 LEG 標章特殊處理 */
   .td-leg { margin: 0; }
@@ -900,16 +917,21 @@ tbody tr:last-child td{border-bottom:none}
     <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
       <button class="export-btn" onclick="exportToExcel()">📥 匯出 Excel</button>
     </div>
-    <div class="tbl-wrap">
+    <div class="tbl-resize-wrap" id="tbl-resize-wrap">
+      <div class="tbl-resize-handle left" title="拖曳調整寬度／雙擊還原" onmousedown="tblResizeStart(event,'left')" ondblclick="tblResizeReset()"></div>
+      <div class="tbl-resize-handle right" title="拖曳調整寬度／雙擊還原" onmousedown="tblResizeStart(event,'right')" ondblclick="tblResizeReset()"></div>
+      <div class="tbl-resize-handle-v" title="拖曳調整高度／雙擊還原" onmousedown="tblResizeStart(event,'bottom')" ondblclick="tblResizeReset()"></div>
+    <div class="tbl-wrap" id="tbl-wrap">
       <table>
         <thead>
           <tr>
             <th>航段</th><th>出發地</th><th>目的地</th><th>航班</th>
-            <th>起飛日期</th><th>起飛時間</th><th>降落日期</th><th>降落時間</th>
+            <th>起飛日期</th><th>起飛時間</th><th>出發航廈</th><th>降落日期</th><th>降落時間</th><th>抵達航廈</th>
           </tr>
         </thead>
         <tbody id="tbl-body"></tbody>
       </table>
+    </div>
     </div>
   </div>
 
@@ -1264,8 +1286,8 @@ const state = {
     fromCountry:'', fromCity:'', fromAirport:'',
     toCountry:'',   toCity:'',   toAirport:'',
     flight:'',
-    depDate:'', depTime:'',
-    arrDate:'', arrTime:'',
+    depDate:'', depTime:'', depTerminal:'',
+    arrDate:'', arrTime:'', arrTerminal:'',
     autoFilled: false,
   }]
 };
@@ -1283,7 +1305,7 @@ function addLeg() {
     fromCity:    last?.toCity    || '',
     fromAirport: last?.toAirport || '',
     toCountry:'', toCity:'', toAirport:'',
-    flight:'', depDate:'', depTime:'', arrDate:'', arrTime:'',
+    flight:'', depDate:'', depTime:'', depTerminal:'', arrDate:'', arrTime:'', arrTerminal:'',
     autoFilled: false,
   });
   render();
@@ -1305,7 +1327,7 @@ function insertLeg(afterIdx) {
     id: uid(),
     fromCountry: prev.toCountry || '', fromCity: prev.toCity || '', fromAirport: prev.toAirport || '',
     toCountry: '', toCity: '', toAirport: '',
-    flight: '', depDate: prev.arrDate || prev.depDate || '', depTime: '', arrDate: '', arrTime: '',
+    flight: '', depDate: prev.arrDate || prev.depDate || '', depTime: '', depTerminal: '', arrDate: '', arrTime: '', arrTerminal: '',
     autoFilled: false,
   });
   render();
@@ -2033,6 +2055,12 @@ function render() {
                   oninput="onTime24(this,${i},'dep')"
                   onblur="blurTime24(this,${i},'dep')">
               </div>
+              <div class="fld fld-terminal">
+                <label>航廈</label>
+                <input type="text" placeholder="T1" maxlength="12"
+                  value="${esc(leg.depTerminal)}"
+                  oninput="state.legs[${i}].depTerminal=this.value">
+              </div>
             </div>
             <div class="fdt-sep">／</div>
             <div class="flight-arr-grp">
@@ -2049,6 +2077,12 @@ function render() {
                   data-leg-arr-time="${i}"
                   oninput="onTime24(this,${i},'arr')"
                   onblur="blurTime24(this,${i},'arr')">
+              </div>
+              <div class="fld fld-terminal">
+                <label>航廈</label>
+                <input type="text" placeholder="T1" maxlength="12"
+                  value="${esc(leg.arrTerminal)}"
+                  oninput="state.legs[${i}].arrTerminal=this.value">
               </div>
             </div>
           </div>
@@ -2201,8 +2235,10 @@ function generate() {
         <td>${fn}</td>
         <td class="td-dt">${fmtDate(leg.depDate)||'<span class="td-em">—</span>'}</td>
         <td class="td-dt">${leg.depTime||'<span class="td-em">—</span>'}</td>
+        <td class="td-dt">${esc(leg.depTerminal)||'<span class="td-em">—</span>'}</td>
         <td class="td-dt">${fmtDate(leg.arrDate)||'<span class="td-em">—</span>'}</td>
         <td class="td-dt">${leg.arrTime||'<span class="td-em">—</span>'}</td>
+        <td class="td-dt">${esc(leg.arrTerminal)||'<span class="td-em">—</span>'}</td>
       </tr>`);
   });
 
@@ -2234,6 +2270,73 @@ function generate() {
 function backToEdit() {
   document.getElementById('result').style.display = 'none';
   document.getElementById('builder').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+/* ─── 行程總表拖曳調整寬度／高度 ─── */
+let _tblResize = null;
+
+function tblResizeStart(evt, side) {
+  const wrap = document.getElementById('tbl-resize-wrap');
+  const tbl = document.getElementById('tbl-wrap');
+  if (!wrap || !tbl) return;
+  const wrapRect = wrap.getBoundingClientRect();
+  const tblRect = tbl.getBoundingClientRect();
+  _tblResize = {
+    side,
+    startX: evt.clientX,
+    startY: evt.clientY,
+    startWidth: wrapRect.width,
+    startMarginLeft: parseFloat(getComputedStyle(wrap).marginLeft) || 0,
+    startHeight: tblRect.height,
+  };
+  evt.currentTarget.classList.add('active');
+  document.body.style.userSelect = 'none';
+  document.addEventListener('mousemove', tblResizeMove);
+  document.addEventListener('mouseup', tblResizeEnd);
+  evt.preventDefault();
+}
+
+function tblResizeMove(evt) {
+  if (!_tblResize) return;
+  const wrap = document.getElementById('tbl-resize-wrap');
+  const tbl = document.getElementById('tbl-wrap');
+  if (!wrap || !tbl) return;
+  const { side, startX, startY, startWidth, startMarginLeft, startHeight } = _tblResize;
+  const minW = 320;
+  const maxW = window.innerWidth - 24;
+  if (side === 'right') {
+    const dx = evt.clientX - startX;
+    const w = Math.min(maxW, Math.max(minW, startWidth + dx));
+    wrap.style.width = w + 'px';
+  } else if (side === 'left') {
+    const dx = evt.clientX - startX;
+    const w = Math.min(maxW, Math.max(minW, startWidth - dx));
+    wrap.style.width = w + 'px';
+    wrap.style.marginLeft = (startMarginLeft + (startWidth - w)) + 'px';
+  } else if (side === 'bottom') {
+    const dy = evt.clientY - startY;
+    const minH = 120;
+    const maxH = window.innerHeight - 40;
+    const h = Math.min(maxH, Math.max(minH, startHeight + dy));
+    tbl.style.height = h + 'px';
+    tbl.style.maxHeight = h + 'px';
+  }
+}
+
+function tblResizeEnd() {
+  _tblResize = null;
+  document.body.style.userSelect = '';
+  document.querySelectorAll('.tbl-resize-handle.active,.tbl-resize-handle-v.active')
+    .forEach(el => el.classList.remove('active'));
+  document.removeEventListener('mousemove', tblResizeMove);
+  document.removeEventListener('mouseup', tblResizeEnd);
+}
+
+function tblResizeReset() {
+  const wrap = document.getElementById('tbl-resize-wrap');
+  const tbl = document.getElementById('tbl-wrap');
+  if (wrap) { wrap.style.width = ''; wrap.style.marginLeft = ''; }
+  if (tbl) { tbl.style.height = ''; tbl.style.maxHeight = ''; }
 }
 
 /* ─── Duration ─── */
@@ -2292,7 +2395,7 @@ async function exportToExcel() {
 
   // Row 1 — title + trip period
   ws.mergeCells('A1:D1');
-  ws.mergeCells('E1:H1');
+  ws.mergeCells('E1:J1');
   const t = ws.getCell('A1');
   t.value = '✈ 行程規劃表';
   t.font = {bold:true, size:13, color:{argb:'FF1E3A8A'}, name:'Arial'};
@@ -2304,7 +2407,7 @@ async function exportToExcel() {
   ws.getRow(1).height = 28;
 
   // Row 2 — headers
-  const HEADERS = ['航段','出發地','目的地','航班','起飛日期','起飛時間','降落日期','降落時間'];
+  const HEADERS = ['航段','出發地','目的地','航班','起飛日期','起飛時間','出發航廈','降落日期','降落時間','抵達航廈'];
   const hRow = ws.addRow(HEADERS);
   hRow.height = 26;
   hRow.eachCell(cell => {
@@ -2323,8 +2426,10 @@ async function exportToExcel() {
       leg.flight  || '',
       leg.depDate || '',
       leg.depTime || '',
+      leg.depTerminal || '',
       leg.arrDate || leg.depDate || '',
       leg.arrTime || '',
+      leg.arrTerminal || '',
     ]);
     row.height = 22;
     const bg = i % 2 === 0 ? 'FFFFFFFF' : 'FFF9FAFB';
@@ -2344,13 +2449,13 @@ async function exportToExcel() {
   // Hidden metadata row (for import round-trip)
   ws.addRow([]);
   const meta = ws.addRow(['TRIP_META', depDate, retDate,
-    `匯出: ${new Date().toLocaleDateString('zh-TW')}`, '', '', '', '']);
+    `匯出: ${new Date().toLocaleDateString('zh-TW')}`, '', '', '', '', '', '']);
   meta.eachCell(cell => {
     cell.font = {size:7, color:{argb:'FFD1D5DB'}, name:'Arial'};
   });
 
   // Column widths + freeze
-  [9, 22, 22, 12, 13, 10, 13, 10].forEach((w, i) => { ws.getColumn(i+1).width = w; });
+  [9, 22, 22, 12, 13, 10, 11, 13, 10, 11].forEach((w, i) => { ws.getColumn(i+1).width = w; });
   ws.views = [{state:'frozen', ySplit:2}];
 
   // Build filename
@@ -2426,6 +2531,16 @@ async function importFromExcel(inputEl) {
     const airIdx = buildAirportIndex();
     const newLegs = [];
     let tripDep = '', tripRet = '', dataStarted = false;
+    // Column positions are read from the header row's actual text, not
+    // hardcoded indices. Older exported files (from before 出發航廈/抵達航廈
+    // existed) have 8 columns instead of 10 — with fixed indices, those two
+    // extra columns don't exist so everything after 起飛時間 silently shifts
+    // left by one (arrival date lands in a "departure terminal" field, etc).
+    // Reading each column by its header label instead means both old and
+    // new file layouts import correctly, and any future column reordering
+    // won't break this again either. Columns not present in an older file
+    // just resolve to undefined → empty string, which is the right result.
+    let col = {};
 
     ws.eachRow((row) => {
       const v  = row.values; // 1-indexed
@@ -2435,11 +2550,16 @@ async function importFromExcel(inputEl) {
         tripRet = String(v[3] || '').trim();
         return;
       }
-      if (c1 === '航段') { dataStarted = true; return; }
+      if (c1 === '航段') {
+        dataStarted = true;
+        col = {};
+        v.forEach((val, idx) => { col[String(val || '').trim()] = idx; });
+        return;
+      }
       if (!dataStarted || !c1.startsWith('LEG')) return;
 
-      const fromCode = extractAirportCode(String(v[2] || '').trim());
-      const toCode   = extractAirportCode(String(v[3] || '').trim());
+      const fromCode = extractAirportCode(String(v[col['出發地']] || '').trim());
+      const toCode   = extractAirportCode(String(v[col['目的地']] || '').trim());
       const fromGeo  = (fromCode && airIdx[fromCode]) || {};
       const toGeo    = (toCode   && airIdx[toCode])   || {};
 
@@ -2447,11 +2567,13 @@ async function importFromExcel(inputEl) {
         id: uid(),
         fromCountry: fromGeo.country || '', fromCity: fromGeo.city || '', fromAirport: fromCode,
         toCountry:   toGeo.country   || '', toCity:   toGeo.city   || '', toAirport:   toCode,
-        flight:   String(v[4] || '').trim().toUpperCase(),
-        depDate:  excelDateStr(v[5]),
-        depTime:  String(v[6] || '').trim(),
-        arrDate:  excelDateStr(v[7]),
-        arrTime:  String(v[8] || '').trim(),
+        flight:   String(v[col['航班']] || '').trim().toUpperCase(),
+        depDate:  excelDateStr(v[col['起飛日期']]),
+        depTime:  String(v[col['起飛時間']] || '').trim(),
+        depTerminal: String(v[col['出發航廈']] || '').trim(),
+        arrDate:  excelDateStr(v[col['降落日期']]),
+        arrTime:  String(v[col['降落時間']] || '').trim(),
+        arrTerminal: String(v[col['抵達航廈']] || '').trim(),
         autoFilled: false,
       });
     });
@@ -3115,7 +3237,7 @@ function autoFillFlightsToSchedule(silent) {
       const ci = _findDateColIdx(depDate);
       if (ci >= 0) {
         const ri = _ensureTimeRow(depTime);
-        _setSchedCell(ri, ci, _buildDepLabel(fn, from, to, depTime));
+        _setSchedCell(ri, ci, _buildDepLabel(fn, from, to, depTime, leg.depTerminal));
         filled++;
       }
     }
@@ -3126,7 +3248,7 @@ function autoFillFlightsToSchedule(silent) {
       const ci = _findDateColIdx(arrDate);
       if (ci >= 0) {
         const ri = _ensureTimeRow(arrTime);
-        _setSchedCell(ri, ci, _buildArrLabel(fn, from, to, arrTime));
+        _setSchedCell(ri, ci, _buildArrLabel(fn, from, to, arrTime, leg.arrTerminal));
         filled++;
       }
     }
@@ -3185,20 +3307,24 @@ function _setSchedCell(ri, ci, label) {
   s.cells[key] = existing ? `${existing}\n${label}` : label;
 }
 
-function _buildDepLabel(fn, from, to, time) {
+function _buildDepLabel(fn, from, to, time, terminal) {
   const route = (from && to) ? `${from}→${to}` : (from || to || '');
-  if (fn && route) return `✈ ${fn} ${route}`;
-  if (fn)    return `✈ ${fn} 起飛`;
-  if (route) return `✈ ${route}`;
-  return `✈ 起飛 ${time}`;
+  const t = (terminal || '').trim();
+  const suffix = t ? ` · ${t}` : '';
+  if (fn && route) return `✈ ${fn} ${route}${suffix}`;
+  if (fn)    return `✈ ${fn} 起飛${suffix}`;
+  if (route) return `✈ ${route}${suffix}`;
+  return `✈ 起飛 ${time}${suffix}`;
 }
 
-function _buildArrLabel(fn, from, to, time) {
+function _buildArrLabel(fn, from, to, time, terminal) {
   const dest = to || from || '';
-  if (fn && dest) return `🛬 ${fn} 抵 ${dest}`;
-  if (fn)   return `🛬 ${fn} 降落`;
-  if (dest) return `🛬 抵 ${dest}`;
-  return `🛬 降落 ${time}`;
+  const t = (terminal || '').trim();
+  const suffix = t ? ` · ${t}` : '';
+  if (fn && dest) return `🛬 ${fn} 抵 ${dest}${suffix}`;
+  if (fn)   return `🛬 ${fn} 降落${suffix}`;
+  if (dest) return `🛬 抵 ${dest}${suffix}`;
+  return `🛬 降落 ${time}${suffix}`;
 }
 
 function generateSchedule() {
