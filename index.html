@@ -481,6 +481,21 @@ tbody tr:last-child td{border-bottom:none}
 .map-export-btn:hover{background:#ecfeff}
 .map-outer{border-radius:var(--r);box-shadow:var(--sh-md);overflow:hidden;background:#0b1626}
 #flight-map{width:100%;height:560px;background:#0b1626}
+/* Faux starfield behind the globe in night mode — three stacked dot layers
+   at different tile sizes/offsets so the pattern doesn't read as an obvious
+   repeating grid. Pure CSS, no image asset needed. */
+.map-outer.map-night-bg{
+  background-color:#000005;
+  background-image:
+    radial-gradient(1.4px 1.4px at 20px 30px, rgba(255,255,255,.9), transparent 60%),
+    radial-gradient(1px 1px at 70px 90px, rgba(255,255,255,.7), transparent 60%),
+    radial-gradient(1.2px 1.2px at 130px 40px, rgba(255,255,255,.8), transparent 60%),
+    radial-gradient(1px 1px at 45px 130px, rgba(255,255,255,.6), transparent 60%),
+    radial-gradient(1.6px 1.6px at 100px 150px, rgba(255,255,255,.9), transparent 60%),
+    radial-gradient(1px 1px at 160px 110px, rgba(255,255,255,.6), transparent 60%);
+  background-repeat:repeat;
+  background-size:180px 180px, 140px 140px, 200px 200px, 110px 110px, 220px 220px, 150px 150px;
+}
 .map-empty{text-align:center;padding:40px 20px;color:var(--g500);font-size:.85rem;background:white}
 /* !important throughout — maplibre-gl.css is linked AFTER this stylesheet in
    <head>, so at equal specificity its own default popup rules (white
@@ -917,6 +932,7 @@ tbody tr:last-child td{border-bottom:none}
         <label class="map-toggle"><input type="checkbox" id="map-show-city" checked onchange="renderFlightMap()"> 顯示城市</label>
         <label class="map-toggle"><input type="checkbox" id="map-show-date" checked onchange="renderFlightMap()"> 顯示日期</label>
         <label class="map-toggle"><input type="checkbox" id="map-show-route" checked onchange="renderFlightMap()"> 顯示飛行軌跡</label>
+        <label class="map-toggle"><input type="checkbox" id="map-show-borders" checked onchange="renderFlightMap()"> 顯示國界/州界</label>
         <button class="map-proj-btn" id="map-proj-btn" onclick="toggleMapProjection()" title="3D 模式下可用滑鼠拖曳旋轉地球">🌐 切換 3D 地球</button>
         <button class="map-daynight-btn" id="map-daynight-btn" onclick="toggleMapDayNight()" title="切換白天／夜間底圖">🌙 切換夜間模式</button>
         <button class="map-export-btn" onclick="exportMapImage()" title="將目前地圖匯出成 JPG 圖片">📷 匯出 JPG</button>
@@ -3204,24 +3220,166 @@ let _flightMap = null;
 let _mapMarkers = [];
 let _mapIs3D = false;
 let _mapPlottedStops = [];
-const MAP_STYLE_DAY   = 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json';       // white bg, blue ocean
-const MAP_STYLE_NIGHT = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';    // dark night-lights look
+/* Real NASA satellite imagery instead of a stylized vector basemap:
+   - Day:   "Blue Marble" (MODIS) — a static, cloud-free true-color composite
+            of Earth. Looks like an actual photo of the day side.
+   - Night: "Black Marble" (VIIRS) — a static night-lights composite showing
+            real city-light clusters on the dark side, the classic "Earth at
+            night" look.
+   Both are served free, with no API key, by NASA's public GIBS WMTS tile
+   service — plain HTTP tile requests, no CDN Web Workers involved (that was
+   what made CesiumJS unusable under file://; MapLibre's own worker already
+   works fine in this app). Both layers cap out at zoom 8 (~500m/px); that's
+   set as the source maxzoom so MapLibre correctly upscales past it instead
+   of requesting tiles that don't exist — plenty of detail for whole-world
+   flight-route views, which is all this map is used for. */
+/* Country/state borders + name labels, as a TILED vector overlay rather
+   than one giant GeoJSON blob. Two things ruled out plain GeoJSON files:
+   - Natural Earth's lightweight 110m admin-1 file turns out to only cover
+     US states (confirmed against the live data) — nothing for China or
+     anywhere else.
+   - The resolution that DOES have full global admin-1 coverage (10m) is a
+     ~24MB single download, re-fetched and re-parsed on every day/night
+     toggle — impractical for a single-file app.
+   CARTO's own vector tile source (the same "carto.streets" dataset behind
+   the Voyager/Positron/Dark-Matter styles used earlier) is built on the
+   OpenMapTiles schema, which DOES have genuinely global admin-1 coverage
+   (including China's provinces) sourced from Natural Earth's 10m data —
+   and because it's proper vector TILES, the browser only ever fetches the
+   small number of tiles covering the current view, at the current zoom,
+   same as the raster imagery tiles. We only pull its "boundary" and
+   "place" layers here (borders + admin labels) — none of its roads,
+   buildings, or water fill, since the satellite/night-lights photo is
+   already the actual basemap. */
+function buildEarthRasterStyle(tileUrl, bgColor) {
+  return {
+    version: 8,
+    // Needed for the label symbol layers below — without a glyphs URL,
+    // MapLibre has nowhere to fetch text glyphs from and text-field
+    // labels silently render as nothing (no error, just invisible).
+    glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
+    sources: {
+      'earth-raster': {
+        type: 'raster',
+        tiles: [tileUrl],
+        tileSize: 256,
+        maxzoom: 8,
+        attribution: '© NASA EOSDIS GIBS / MODIS / VIIRS'
+      },
+      'carto-admin': {
+        type: 'vector',
+        url: 'https://tiles.basemaps.cartocdn.com/vector/carto.streets/v1/tiles.json'
+      }
+    },
+    layers: [
+      { id: 'bg', type: 'background', paint: { 'background-color': bgColor } },
+      { id: 'earth-raster-layer', type: 'raster', source: 'earth-raster', paint: { 'raster-fade-duration': 0 } },
+      // State/province borders (OpenMapTiles admin_level 4) — thin, dashed,
+      // drawn under the country lines. Only from zoom 4 on, matching where
+      // this tileset actually carries state-level boundary detail.
+      {
+        id: 'admin1-line', type: 'line', source: 'carto-admin', 'source-layer': 'boundary',
+        minzoom: 4,
+        filter: ['all', ['==', ['get', 'admin_level'], 4], ['==', ['get', 'maritime'], 0]],
+        paint: {
+          'line-color': '#ffffff',
+          'line-width': ['interpolate', ['linear'], ['zoom'], 4, 0.4, 9, 1.2],
+          'line-opacity': 0.3,
+          'line-dasharray': [2, 2]
+        }
+      },
+      // Country borders (admin_level 2) — a touch bolder/brighter so they
+      // read over both the day photo and the night lights.
+      {
+        id: 'admin0-line', type: 'line', source: 'carto-admin', 'source-layer': 'boundary',
+        filter: ['all', ['==', ['get', 'admin_level'], 2], ['==', ['get', 'maritime'], 0]],
+        paint: {
+          'line-color': '#ffffff',
+          'line-width': ['interpolate', ['linear'], ['zoom'], 1, 0.6, 8, 1.8],
+          'line-opacity': 0.55
+        }
+      },
+      // State/province name labels (e.g. US states, China's provinces).
+      // "name_en" is the English-name field this tileset exposes — same
+      // field the country labels below use. Only from zoom 5, matching
+      // where CARTO's own styles start showing state-level place labels.
+      {
+        id: 'admin1-label', type: 'symbol', source: 'carto-admin', 'source-layer': 'place',
+        minzoom: 5,
+        filter: ['==', ['get', 'class'], 'state'],
+        layout: {
+          'text-field': ['get', 'name_en'],
+          'text-font': ['Open Sans Regular'],
+          'text-size': ['interpolate', ['linear'], ['zoom'], 5, 9, 9, 12]
+        },
+        paint: {
+          'text-color': '#dbe9ff',
+          'text-halo-color': 'rgba(0,0,0,0.8)',
+          'text-halo-width': 1.1
+        }
+      },
+      // Country name labels. text-halo makes them legible against whatever
+      // photo color happens to be underneath (ocean, land, city lights).
+      {
+        id: 'admin0-label', type: 'symbol', source: 'carto-admin', 'source-layer': 'place',
+        filter: ['==', ['get', 'class'], 'country'],
+        layout: {
+          'text-field': ['get', 'name_en'],
+          'text-font': ['Open Sans Regular'],
+          'text-size': ['interpolate', ['linear'], ['zoom'], 1, 9, 6, 13]
+        },
+        paint: {
+          'text-color': '#ffffff',
+          'text-halo-color': 'rgba(0,0,0,0.85)',
+          'text-halo-width': 1.2
+        }
+      }
+    ]
+  };
+}
+const MAP_STYLE_DAY = buildEarthRasterStyle(
+  'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_NextGeneration/default/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpg',
+  '#bcdcf2' // pale sky-blue void beyond the globe edge, before/around tiles
+);
+const MAP_STYLE_NIGHT = buildEarthRasterStyle(
+  'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_Black_Marble/default/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.png',
+  '#000005' // near-black void, i.e. space
+);
 // Default to night mode outside 06:00–18:00 local time; a manual toggle button can override this per-session.
 let _mapDarkMode = (() => { const h = new Date().getHours(); return h < 6 || h >= 18; })();
 function currentMapStyle() { return _mapDarkMode ? MAP_STYLE_NIGHT : MAP_STYLE_DAY; }
 
-/* CARTO Voyager's default ocean/lake fill ('water': #b0d0d6, a pale gray-
-   blue) reads flat next to the city glow markers. Recolor it at runtime to
-   a richer, more saturated "satellite photo" ocean blue — only touches the
-   two water fill layers, leaving land, roads, labels and borders untouched.
-   No-ops harmlessly in night mode / if the style hasn't loaded these layers
-   (e.g. dark-matter, which has no 'water' layer by this id). */
-function applyDayOceanColor() {
-  if (_mapDarkMode || !_flightMap) return;
+/* Atmospheric halo around the globe edge + a matching sky/space backdrop,
+   using MapLibre's built-in sky API (map.setSky). setStyle() clears this
+   along with everything else, so it's re-applied on every applyLayers()
+   call rather than just once at map creation. */
+function applyGlobeAtmosphere() {
+  if (!_flightMap || typeof _flightMap.setSky !== 'function') return;
   try {
-    if (_flightMap.getLayer('water')) _flightMap.setPaintProperty('water', 'fill-color', '#1a6fa8');
-    if (_flightMap.getLayer('water_shadow')) _flightMap.setPaintProperty('water_shadow', 'fill-color', 'rgba(13,66,102,0.45)');
+    _flightMap.setSky(_mapDarkMode ? {
+      'sky-color': '#000005',
+      'sky-horizon-blend': 0.6,
+      'horizon-color': '#0d2447',
+      'horizon-fog-blend': 0.6,
+      'fog-color': '#000005',
+      'fog-ground-blend': 0.5,
+      'atmosphere-blend': ['interpolate', ['linear'], ['zoom'], 0, 1, 5, 1, 7, 0]
+    } : {
+      'sky-color': '#1a6fd8',
+      'sky-horizon-blend': 0.6,
+      'horizon-color': '#bcdcf2',
+      'horizon-fog-blend': 0.6,
+      'fog-color': '#bcdcf2',
+      'fog-ground-blend': 0.5,
+      'atmosphere-blend': ['interpolate', ['linear'], ['zoom'], 0, 1, 5, 1, 7, 0]
+    });
+    if (typeof _flightMap.setLight === 'function') {
+      _flightMap.setLight({ anchor: 'map', position: [1.5, 90, 80] });
+    }
   } catch (e) {}
+  // Starfield only reads well against the near-black night void.
+  const outer = document.querySelector('.map-outer');
+  if (outer) outer.classList.toggle('map-night-bg', _mapDarkMode);
 }
 
 function generateMap() {
@@ -3342,9 +3500,10 @@ function renderFlightMap() {
     return;
   }
 
-  const showCity  = document.getElementById('map-show-city')?.checked;
-  const showDate  = document.getElementById('map-show-date')?.checked;
-  const showRoute = document.getElementById('map-show-route')?.checked;
+  const showCity    = document.getElementById('map-show-city')?.checked;
+  const showDate    = document.getElementById('map-show-date')?.checked;
+  const showRoute   = document.getElementById('map-show-route')?.checked;
+  const showBorders = document.getElementById('map-show-borders')?.checked;
 
   const stops = buildFlightStops();
   const plotted = [];
@@ -3381,7 +3540,12 @@ function renderFlightMap() {
   const applyLayers = () => {
     const map = _flightMap;
     try { map.setFog({}); } catch(e) {}
-    applyDayOceanColor();
+    applyGlobeAtmosphere();
+
+    const borderVis = showBorders ? 'visible' : 'none';
+    ['admin1-line', 'admin0-line', 'admin1-label', 'admin0-label'].forEach(id => {
+      if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', borderVis);
+    });
 
     const routeData = buildRouteGeoJSON();
     if (map.getSource('flight-route')) {
@@ -3585,7 +3749,7 @@ function _captureMapToJpg() {
   out.width = w; out.height = h;
   const ctx = out.getContext('2d');
 
-  ctx.fillStyle = _mapDarkMode ? '#0b1626' : '#e7eef4';
+  ctx.fillStyle = _mapDarkMode ? '#000005' : '#bcdcf2';
   ctx.fillRect(0, 0, w, h);
   try {
     ctx.drawImage(srcCanvas, 0, 0, w, h);
