@@ -475,10 +475,20 @@ tbody tr:last-child td{border-bottom:none}
   color:white;border:none;border-radius:20px;padding:6px 16px;font-size:.78rem;font-weight:700;cursor:pointer;
   transition:all .15s;white-space:nowrap}
 .map-daynight-btn:hover{opacity:.9;transform:translateY(-1px)}
+.map-export-split{position:relative;display:inline-flex;align-items:stretch}
 .map-export-btn{display:inline-flex;align-items:center;gap:6px;background:white;color:#0e7490;
-  border:1.5px solid #a5f3fc;border-radius:20px;padding:6px 16px;font-size:.78rem;font-weight:700;cursor:pointer;
-  transition:all .15s;white-space:nowrap}
+  border:1.5px solid #a5f3fc;border-right:none;border-radius:20px 0 0 20px;padding:6px 14px;font-size:.78rem;
+  font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap}
 .map-export-btn:hover{background:#ecfeff}
+.map-export-caret{display:inline-flex;align-items:center;background:white;color:#0e7490;
+  border:1.5px solid #a5f3fc;border-radius:0 20px 20px 0;padding:6px 10px;font-size:.7rem;font-weight:700;cursor:pointer;
+  transition:all .15s}
+.map-export-caret:hover{background:#ecfeff}
+.map-export-menu{display:none;position:absolute;top:calc(100% + 6px);right:0;background:white;
+  border:1.5px solid #a5f3fc;border-radius:10px;box-shadow:var(--sh-md);overflow:hidden;z-index:20;min-width:180px}
+.map-export-menu.open{display:block}
+.map-export-menu-item{padding:9px 14px;font-size:.78rem;font-weight:700;color:#0e7490;cursor:pointer;white-space:nowrap}
+.map-export-menu-item:hover{background:#ecfeff}
 .map-outer{border-radius:var(--r);box-shadow:var(--sh-md);overflow:hidden;background:#0b1626}
 #flight-map{width:100%;height:560px;background:#0b1626}
 /* Faux starfield behind the globe in night mode — three stacked dot layers
@@ -935,7 +945,14 @@ tbody tr:last-child td{border-bottom:none}
         <label class="map-toggle"><input type="checkbox" id="map-show-borders" checked onchange="renderFlightMap()"> 顯示國界/州界</label>
         <button class="map-proj-btn" id="map-proj-btn" onclick="toggleMapProjection()" title="3D 模式下可用滑鼠拖曳旋轉地球">🌐 切換 3D 地球</button>
         <button class="map-daynight-btn" id="map-daynight-btn" onclick="toggleMapDayNight()" title="切換白天／夜間底圖">🌙 切換夜間模式</button>
-        <button class="map-export-btn" onclick="exportMapImage()" title="將目前地圖匯出成 JPG 圖片">📷 匯出 JPG</button>
+        <div class="map-export-split">
+          <button class="map-export-btn" onclick="exportMapImage()" title="將目前地圖匯出成圖片">📷 匯出圖片</button>
+          <button class="map-export-caret" onclick="toggleExportFormatMenu(event)" title="選擇匯出格式">▾</button>
+          <div class="map-export-menu" id="map-export-menu">
+            <div class="map-export-menu-item" data-fmt="jpg" onclick="setExportFormat('jpg')">✓ JPG（一般）</div>
+            <div class="map-export-menu-item" data-fmt="png" onclick="setExportFormat('png')">　PNG（透明背景）</div>
+          </div>
+        </div>
         <button class="map-clear-btn" onclick="clearMap()">✕ 關閉</button>
       </div>
     </div>
@@ -3472,6 +3489,22 @@ function greatCirclePoints(a, b, segments = 80) {
   return pts;
 }
 
+/* Shared by the visible map's applyLayers() and the export map — builds the
+   great-circle route GeoJSON from an ordered list of plotted stops (each
+   with a .latlng [lat,lon]). Hoisted out to a standalone function so the
+   export map can add the exact same route line the visible map shows,
+   instead of quietly having no route line at all. */
+function buildRouteGeoJSONFromStops(stops) {
+  const features = [];
+  for (let i = 0; i < stops.length - 1; i++) {
+    features.push({
+      type: 'Feature', properties: {},
+      geometry: { type: 'LineString', coordinates: greatCirclePoints(stops[i].latlng, stops[i + 1].latlng, 80) }
+    });
+  }
+  return { type: 'FeatureCollection', features };
+}
+
 /* Procedurally draw a small triangular arrow used for route-direction symbols */
 function ensureArrowIcon(map, cb) {
   if (map.hasImage('flight-arrow')) { cb(); return; }
@@ -3526,16 +3559,7 @@ function renderFlightMap() {
   }
   _mapPlottedStops = plotted;
 
-  const buildRouteGeoJSON = () => {
-    const features = [];
-    for (let i = 0; i < plotted.length - 1; i++) {
-      features.push({
-        type: 'Feature', properties: {},
-        geometry: { type: 'LineString', coordinates: greatCirclePoints(plotted[i].latlng, plotted[i+1].latlng, 80) }
-      });
-    }
-    return { type: 'FeatureCollection', features };
-  };
+  const buildRouteGeoJSON = () => buildRouteGeoJSONFromStops(plotted);
 
   const applyLayers = () => {
     const map = _flightMap;
@@ -3701,7 +3725,7 @@ function toggleMapDayNight() {
   _flightMap.setStyle(currentMapStyle());
 }
 
-/* Small canvas helper for the rounded label chips drawn during JPG export. */
+/* Small canvas helper for the rounded label chips drawn during export. */
 function _roundRectPath(ctx, x, y, w, h, r) {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
@@ -3712,33 +3736,95 @@ function _roundRectPath(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-/* Export the current flight map as a JPG. The base map (tiles + route line
-   + arrows) is a WebGL canvas that can be read back directly via
-   getCanvas() (requires preserveDrawingBuffer:true, set at map creation).
-   The city markers/labels are separate DOM elements layered on top by
-   MapLibre, NOT part of that canvas — so they're redrawn manually here at
-   their current projected pixel position onto a composited output canvas. */
-/* Export capture is done on the map's 'idle' event (fires once the current
-   view has fully rendered — all tiles loaded, no pending frames) rather than
-   immediately on click. Capturing mid-render is what previously produced a
-   blank/tile-less JPG: preserveDrawingBuffer keeps whatever was last painted,
-   but if a repaint was still in flight the "last paint" could be an empty
-   frame. triggerRepaint() + waiting for idle guarantees the canvas holds a
-   complete frame — i.e. exactly what's on screen — before we read it back. */
+/* Export the current flight map as a JPG or transparent PNG.
+
+   Earlier versions of this captured a SEPARATE, freshly-created MapLibre
+   map instance (copying over center/zoom/bearing/pitch) so the visible map
+   never had to resize. That turned out to be fragile: a fresh map doesn't
+   share the live map's internal longitude-wrap state, so after dragging
+   the 3D globe around, the same raw coordinates could project to
+   completely different — even off-canvas — pixel positions in the copy
+   (missing markers, wrong framing).
+
+   This version captures the ACTUAL live map instead. It's temporarily
+   moved off-screen (position:fixed, far outside the viewport) and enlarged
+   for one high-resolution render, then moved back — same instance, same
+   camera, same wrap state throughout, so what gets captured is guaranteed
+   to be exactly what was on screen. Nothing visibly flashes because the
+   resize happens while the element is already off-screen. */
+/* Export format is a tiny split-button menu (📷 匯出圖片 + a ▾ caret) rather
+   than a separate dropdown — see the HTML/CSS for .map-export-split. */
+let _mapExportFormat = 'jpg';
+
+function toggleExportFormatMenu(evt) {
+  evt.stopPropagation();
+  const menu = document.getElementById('map-export-menu');
+  if (!menu) return;
+  const opening = !menu.classList.contains('open');
+  menu.classList.toggle('open', opening);
+  if (opening) {
+    const closeOnce = () => menu.classList.remove('open');
+    setTimeout(() => document.addEventListener('click', closeOnce, { once: true }), 0);
+  }
+}
+
+function setExportFormat(fmt) {
+  _mapExportFormat = fmt;
+  document.querySelectorAll('#map-export-menu .map-export-menu-item').forEach(el => {
+    el.textContent = (el.dataset.fmt === fmt ? '✓ ' : '　') + (el.dataset.fmt === 'png' ? 'PNG（透明背景）' : 'JPG（一般）');
+  });
+  document.getElementById('map-export-menu')?.classList.remove('open');
+}
+
+/* Capture the flight map exactly as it currently renders — no resizing.
+   An earlier version temporarily enlarged the map container first, hoping
+   for a sharper export; that enlargement changed what the map actually
+   rendered (a wider/taller viewport at the same zoom shows a different,
+   sometimes double-wrapped extent — that's what caused markers and framing
+   to drift from what was on screen). Capturing at the exact on-screen size
+   removes that entire category of mismatch: same container, same camera,
+   same everything the map is already rendering — what you see really is
+   what gets exported. The trade-off is the image resolution is capped to
+   however large the map panel currently is on screen; making the browser
+   window wider before exporting increases it. */
 function exportMapImage() {
   if (!_flightMap) { showToast('⚠ 請先產生地圖', 'warn'); return; }
   if (!_flightMap.isStyleLoaded || !_flightMap.isStyleLoaded()) {
     showToast('⏳ 地圖仍在載入中，請稍候再匯出', 'warn');
     return;
   }
+  showToast('⏳ 正在產生圖片…', 'success');
+
+  const format = _mapExportFormat === 'png' ? 'png' : 'jpg';
+
+  // For a transparent PNG, hide the style's own background fill so the
+  // WebGL canvas genuinely leaves empty pixels transparent instead of
+  // painted solid — that's what "去背" (cut out the background) means here.
+  const bgLayerId = 'bg';
+  const hasBgLayer = !!_flightMap.getLayer(bgLayerId);
+  if (format === 'png' && hasBgLayer) {
+    _flightMap.setLayoutProperty(bgLayerId, 'visibility', 'none');
+  }
+
+  const restore = () => {
+    if (format === 'png' && hasBgLayer) {
+      _flightMap.setLayoutProperty(bgLayerId, 'visibility', 'visible');
+    }
+  };
+
   let done = false;
-  const finish = () => { if (done) return; done = true; _captureMapToJpg(); };
+  const finish = () => {
+    if (done) return;
+    done = true;
+    try { _captureMapToImage(format); }
+    finally { restore(); }
+  };
   _flightMap.once('idle', finish);
   _flightMap.triggerRepaint();
-  setTimeout(finish, 500); // safety fallback in case 'idle' doesn't fire (e.g. view was already fully settled)
+  setTimeout(finish, 1500); // safety fallback in case 'idle' doesn't fire
 }
 
-function _captureMapToJpg() {
+function _captureMapToImage(format) {
   let srcCanvas;
   try { srcCanvas = _flightMap.getCanvas(); } catch (e) { srcCanvas = null; }
   if (!srcCanvas) { showToast('⚠ 地圖尚未準備好，請稍候再匯出', 'warn'); return; }
@@ -3749,8 +3835,13 @@ function _captureMapToJpg() {
   out.width = w; out.height = h;
   const ctx = out.getContext('2d');
 
-  ctx.fillStyle = _mapDarkMode ? '#000005' : '#bcdcf2';
-  ctx.fillRect(0, 0, w, h);
+  if (format !== 'png') {
+    // Opaque export: a solid backstop fill, in case any pixel wasn't
+    // painted by the map's own background layer. Harmless no-op anywhere
+    // the map already covered — the map's own render draws right over it.
+    ctx.fillStyle = _mapDarkMode ? '#000005' : '#bcdcf2';
+    ctx.fillRect(0, 0, w, h);
+  }
   try {
     ctx.drawImage(srcCanvas, 0, 0, w, h);
   } catch (e) {
@@ -3761,8 +3852,25 @@ function _captureMapToJpg() {
   const showCity = document.getElementById('map-show-city')?.checked;
   const showDate = document.getElementById('map-show-date')?.checked;
 
+  // In a wide, zoomed-out 2D view, mercator repeats the whole world at
+  // both edges (visible in the export as two copies of Europe/Africa) — a
+  // given longitude then has more than one on-screen position, and
+  // map.project() picks whichever it internally judges "nearest," which at
+  // this aspect/zoom doesn't always match the copy actually rendered where
+  // expected. Explicitly resolving each stop's longitude to the copy
+  // nearest the map's own center removes that ambiguity — this is what
+  // made round-trip stops back at the departure city (repeated airport,
+  // same lng) sporadically vanish off one edge of the export.
+  const mapCenterLng = _flightMap.getCenter().lng;
+  const unwrapNearCenter = lng => {
+    let l = lng;
+    while (l - mapCenterLng > 180) l -= 360;
+    while (l - mapCenterLng < -180) l += 360;
+    return l;
+  };
+
   (_mapPlottedStops || []).forEach(p => {
-    const pt = _flightMap.project([p.latlng[1], p.latlng[0]]);
+    const pt = _flightMap.project([unwrapNearCenter(p.latlng[1]), p.latlng[0]]);
     const step = 16 * dpr;
     const ox = p.repeatIdx === 0 ? 0 : step * p.repeatIdx;
     const oy = p.repeatIdx === 0 ? 0 : -step * p.repeatIdx;
@@ -3815,12 +3923,13 @@ function _captureMapToJpg() {
 
   const link = document.createElement('a');
   const stamp = new Date().toISOString().slice(0, 10);
-  link.download = `flight-map-${stamp}.jpg`;
-  link.href = out.toDataURL('image/jpeg', 0.92);
+  const ext = format === 'png' ? 'png' : 'jpg';
+  link.download = `flight-map-${stamp}.${ext}`;
+  link.href = format === 'png' ? out.toDataURL('image/png') : out.toDataURL('image/jpeg', 0.95);
   document.body.appendChild(link);
   link.click();
   link.remove();
-  showToast('✅ 已匯出地圖 JPG', 'success');
+  showToast(`✅ 已匯出地圖 ${ext.toUpperCase()}`, 'success');
 }
 
 async function exportScheduleExcel() {
